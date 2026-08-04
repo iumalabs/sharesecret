@@ -35,4 +35,5 @@ npm run dev
 
 - One focused change per PR. CI (lint, typecheck, test, build, CodeQL, gitleaks) must be green before merge.
 - No secrets, API tokens, or `.dev.vars` in commits — `.env.example` documents required variables without values.
+- Note: `npm run build` copies `.dev.vars` into `dist/sharesecret/` (this is `@cloudflare/vite-plugin` behavior, so `vite preview` can run against a Worker locally). `dist/` is gitignored, but don't manually publish or archive the `dist/` directory anywhere it could leak your local `.dev.vars`.
 - Security-relevant changes (crypto, PIN handling, storage, headers) should call out the reasoning in the PR description, not just the diff.
