@@ -1,20 +1,6 @@
 @import "./assets/fonts/fonts.css";
 
-:root,
-[data-theme="terminal"] {
-  color-scheme: dark;
-  --bg: #04060a;
-  --panel: rgba(9, 18, 16, 0.62);
-  --border: rgba(63, 251, 156, 0.18);
-  --accent: #3ffb9c;
-  --accent2: #7dfcc6;
-  --text: #d7f7e6;
-  --dim: #6e8f83;
-  --display: "JetBrains Mono", ui-monospace, monospace;
-  --glow: rgba(63, 251, 156, 0.15);
-}
-
-[data-theme="neon"] {
+:root {
   color-scheme: dark;
   --bg: #070615;
   --panel: rgba(19, 16, 44, 0.62);
@@ -25,22 +11,6 @@
   --dim: #8b86b8;
   --display: "Space Grotesk", ui-sans-serif, sans-serif;
   --glow: rgba(167, 139, 250, 0.22);
-}
-
-[data-theme="slate"] {
-  color-scheme: dark;
-  --bg: #0a0c0f;
-  --panel: rgba(20, 23, 27, 0.66);
-  --border: rgba(255, 157, 77, 0.18);
-  --accent: #ff9d4d;
-  --accent2: #ffd9a8;
-  --text: #e9e6e0;
-  --dim: #8b877f;
-  --display: "Space Grotesk", ui-sans-serif, sans-serif;
-  --glow: rgba(255, 157, 77, 0.14);
-}
-
-:root {
   --danger: #ff9c9c;
   --danger-border: rgba(255, 90, 90, 0.4);
   --mono: "JetBrains Mono", ui-monospace, monospace;
@@ -146,33 +116,6 @@ a:hover {
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
-.theme-picker {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.theme-swatch {
-  position: relative;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  padding: 0;
-}
-
-.theme-swatch[aria-pressed="true"]::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border: 1px solid var(--accent);
-  border-radius: 9px;
-}
-
 .brand-mark {
   position: relative;
   width: 32px;
@@ -182,18 +125,8 @@ a:hover {
   border: 1px solid var(--accent);
   border-radius: 9px;
   background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--accent);
   flex-shrink: 0;
-}
-
-.brand-mark::before {
-  content: "";
-  width: 11px;
-  height: 9px;
-  border: 1.6px solid var(--accent);
-  border-radius: 2px;
-  box-shadow:
-    0 -5px 0 -3.4px var(--accent),
-    0 -3px 0 -3.4px var(--accent);
 }
 
 .brand-mark::after {
@@ -203,6 +136,29 @@ a:hover {
   border: 1px solid var(--accent);
   border-radius: 9px;
   animation: pulse-ring 3.6s ease-out infinite;
+}
+
+.pin-icon {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--accent);
+}
+
+.pin-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  opacity: 0.35;
+  animation: pulse-ring 3s ease-out infinite;
 }
 
 .brand-name {
@@ -679,6 +635,7 @@ code {
 @media (prefers-reduced-motion: reduce) {
   .badge-dot,
   .brand-mark::after,
+  .pin-icon::after,
   .bg-glow::before,
   main,
   .status-page {

@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import CreatePage from "./pages/CreatePage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import RevealPage from "./pages/RevealPage";
-import { applyTheme, getStoredTheme, THEMES, type ThemeId } from "./lib/theme";
+import Logo from "./components/Logo";
 
 function useRoute() {
   const path = window.location.pathname;
@@ -14,11 +13,6 @@ function useRoute() {
 
 function App() {
   const route = useRoute();
-  const [theme, setTheme] = useState<ThemeId>(getStoredTheme);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
 
   return (
     <>
@@ -28,7 +22,9 @@ function App() {
       <div className="shell">
         <header className="brand">
           <a href="/" className="brand-link">
-            <span className="brand-mark" aria-hidden="true" />
+            <span className="brand-mark" aria-hidden="true">
+              <Logo size={20} />
+            </span>
             <span className="brand-name">SHARESECRET</span>
           </a>
 
@@ -40,20 +36,6 @@ function App() {
               How it works
             </a>
           </nav>
-
-          <div className="theme-picker" role="group" aria-label="Theme">
-            {THEMES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className="theme-swatch"
-                title={t.name}
-                aria-pressed={theme === t.id}
-                style={{ background: t.swatch }}
-                onClick={() => setTheme(t.id)}
-              />
-            ))}
-          </div>
         </header>
 
         <main className={route.page === "how" ? "page wide" : "page"}>
