@@ -66,15 +66,18 @@ export default function RevealPage({ id }: { id: string }) {
     }
   }
 
-  if (status.kind === "loading") return <p>Loading…</p>;
+  if (status.kind === "loading") return null;
 
   if (status.kind === "missing-key") {
     return (
-      <div>
-        <h1>Incomplete link</h1>
+      <div className="status-page">
+        <div className="status-icon" aria-hidden="true">
+          ∅
+        </div>
+        <h2>Incomplete link</h2>
         <p>
-          This link is missing its decryption key. Make sure you copied the <em>entire</em> link, including everything
-          after the <code>#</code>.
+          This link is missing its decryption key. Make sure you copied the entire link, including everything after the{" "}
+          <code>#</code>.
         </p>
       </div>
     );
@@ -82,8 +85,11 @@ export default function RevealPage({ id }: { id: string }) {
 
   if (status.kind === "not-found") {
     return (
-      <div>
-        <h1>Secret not found</h1>
+      <div className="status-page">
+        <div className="status-icon" aria-hidden="true">
+          ∅
+        </div>
+        <h2>Secret not found</h2>
         <p>This secret has already been viewed, has expired, or never existed.</p>
       </div>
     );
@@ -91,8 +97,11 @@ export default function RevealPage({ id }: { id: string }) {
 
   if (status.kind === "destroyed") {
     return (
-      <div>
-        <h1>Secret destroyed</h1>
+      <div className="status-page">
+        <div className="status-icon" aria-hidden="true">
+          ∅
+        </div>
+        <h2>Secret destroyed</h2>
         <p role="alert">{status.message}</p>
       </div>
     );
@@ -100,41 +109,62 @@ export default function RevealPage({ id }: { id: string }) {
 
   if (status.kind === "revealed") {
     return (
-      <div>
+      <>
+        <div className="badge">
+          <span className="badge-dot" aria-hidden="true" />
+          decrypted locally
+        </div>
         <h1>Secret revealed</h1>
-        <p className="hint">This secret has now been deleted and can't be viewed again.</p>
-        <pre className="secret-text">{status.plaintext}</pre>
-      </div>
+        <p className="lede left">
+          This secret has now been deleted and can't be viewed again -- copy it somewhere safe.
+        </p>
+        <div className="result-panel">
+          <pre className="secret-body">{status.plaintext}</pre>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary block"
+          onClick={() => navigator.clipboard.writeText(status.plaintext)}
+        >
+          Copy secret
+        </button>
+      </>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Enter PIN</h1>
-      <p className="hint">Enter the PIN you were given separately to reveal this secret.</p>
+    <>
+      <div className="hero">
+        <h1>Someone left you a sealed note</h1>
+        <p className="lede">Enter the PIN they gave you on another channel.</p>
+      </div>
 
-      <label htmlFor="pin">PIN</label>
-      <input
-        id="pin"
-        type="text"
-        inputMode="numeric"
-        pattern="\d*"
-        autoComplete="off"
-        value={pin}
-        onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-        autoFocus
-        required
-      />
+      <form onSubmit={handleSubmit} className="card">
+        <label htmlFor="pin">PIN</label>
+        <div className="field-wrap bare">
+          <input
+            id="pin"
+            type="text"
+            inputMode="numeric"
+            pattern="\d*"
+            autoComplete="off"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+            autoFocus
+            required
+          />
+        </div>
 
-      {pinError && (
-        <p role="alert" className="error">
-          {pinError}
-        </p>
-      )}
+        {pinError && (
+          <p role="alert" className="error">
+            {pinError}
+          </p>
+        )}
 
-      <button type="submit" disabled={submitting || !key || pin.length === 0}>
-        {submitting ? "Checking…" : "Reveal secret"}
-      </button>
-    </form>
+        <button type="submit" className="btn-primary" disabled={submitting || !key || pin.length === 0}>
+          {submitting ? "Checking…" : "Reveal secret"}
+        </button>
+      </form>
+    </>
   );
 }
