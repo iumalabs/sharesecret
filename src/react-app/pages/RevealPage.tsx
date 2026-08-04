@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { checkMessage, revealMessage } from "../lib/api";
 import { decryptText, importKey } from "../lib/crypto";
+import Logo from "../components/Logo";
 
 type Status =
   | { kind: "loading" }
@@ -135,7 +136,10 @@ export default function RevealPage({ id }: { id: string }) {
   return (
     <>
       <div className="hero">
-        <h1>Someone left you a sealed note</h1>
+        <span className="pin-icon" aria-hidden="true">
+          <Logo size={30} />
+        </span>
+        <h2>Someone left you a sealed note</h2>
         <p className="lede">Enter the PIN they gave you on another channel.</p>
       </div>
 
