@@ -3,11 +3,13 @@ import { createMessage, getParams, type Params } from "../lib/api";
 import { encryptText, exportKey, generateKey } from "../lib/crypto";
 
 const EXPIRY_PRESETS = [
-  { label: "15 minutes", seconds: 15 * 60 },
+  { label: "15 min", seconds: 15 * 60 },
   { label: "1 hour", seconds: 60 * 60 },
   { label: "6 hours", seconds: 6 * 60 * 60 },
   { label: "24 hours", seconds: 24 * 60 * 60 },
 ];
+
+const MAX_MESSAGE_CHARS = 40_000;
 
 function generatePin(size: number): string {
   const digits = new Uint32Array(size);
@@ -69,75 +71,114 @@ export default function CreatePage() {
     return <CreatedResult result={result} onReset={() => setResult(null)} />;
   }
 
+  const activePreset = EXPIRY_PRESETS.find((p) => p.seconds === expireSeconds);
+
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Share a secret</h1>
-      <p className="hint">
-        Encrypted in your browser before it's sent. We never see your message, and the decryption key never leaves this
-        link.
-      </p>
+    <>
+      <div className="hero">
+        <div className="badge">
+          <span className="badge-dot" aria-hidden="true" />
+          AES-128-GCM · encrypted in this tab
+        </div>
+        <h1>
+          Say it once.
+          <br />
+          <span className="accent">Then it never existed.</span>
+        </h1>
+        <p className="lede">One link, one read, then shredded. We store a blob we can't open.</p>
+      </div>
 
-      <label htmlFor="message">Secret message</label>
-      <textarea
-        id="message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        rows={6}
-        required
-        maxLength={40_000}
-        placeholder="Type or paste your secret here"
-      />
+      <form onSubmit={handleSubmit} className="card">
+        <div className="card-label">
+          <span>New secret</span>
+        </div>
 
-      <label htmlFor="expire">Expires after</label>
-      <select id="expire" value={expireSeconds} onChange={(e) => setExpireSeconds(Number(e.target.value))}>
-        {EXPIRY_PRESETS.map((p) => (
-          <option key={p.seconds} value={p.seconds}>
-            {p.label}
-          </option>
-        ))}
-      </select>
+        <div className="field-wrap">
+          <textarea
+            id="message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            required
+            maxLength={MAX_MESSAGE_CHARS}
+            placeholder="Type the thing you shouldn't send over chat…"
+            spellCheck={false}
+            aria-label="Secret message"
+          />
+          <div className="field-counter">
+            <span>{message.length} chars</span>
+          </div>
+        </div>
 
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
+        <div className="card-label">
+          <span>Self-destruct after</span>
+          <span className="accent">{activePreset?.label}</span>
+        </div>
+        <div className="choice-row" role="group" aria-label="Expiry">
+          {EXPIRY_PRESETS.map((p) => (
+            <button
+              key={p.seconds}
+              type="button"
+              className="choice"
+              aria-pressed={p.seconds === expireSeconds}
+              onClick={() => setExpireSeconds(p.seconds)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
 
-      <button type="submit" disabled={submitting || !params || !message.trim()}>
-        {submitting ? "Encrypting…" : "Create secret link"}
-      </button>
-    </form>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+
+        <button type="submit" className="btn-primary" disabled={submitting || !params || !message.trim()}>
+          {submitting ? "Encrypting…" : "Encrypt & get link"}
+        </button>
+        <div className="foot-note">Key derived locally · never transmitted</div>
+      </form>
+    </>
   );
 }
 
 function CreatedResult({ result, onReset }: { result: CreatedSecret; onReset: () => void }) {
   return (
-    <div>
-      <h1>Your secret link is ready</h1>
-      <p className="hint">
-        Share the link and the PIN <strong>separately</strong> -- e.g. link by email, PIN by text message. Anyone with
-        both can read the secret exactly once.
-      </p>
+    <>
+      <div className="badge">
+        <span className="badge-dot" aria-hidden="true" />
+        sealed
+      </div>
+      <h1>Your secret is now a stranger to us.</h1>
+      <p className="lede left">Send the link. Say the PIN out loud on another channel. Nothing else to do.</p>
 
-      <label htmlFor="link">Link</label>
-      <div className="copy-row">
-        <input id="link" type="text" readOnly value={result.link} onFocus={(e) => e.currentTarget.select()} />
-        <button type="button" onClick={() => navigator.clipboard.writeText(result.link)}>
-          Copy
-        </button>
+      <div className="result-panel">
+        <div className="card-label">
+          <span>One-time link</span>
+        </div>
+        <div className="result-value">{result.link}</div>
+        <div className="result-row">
+          <button type="button" className="btn-primary" onClick={() => navigator.clipboard.writeText(result.link)}>
+            Copy link
+          </button>
+        </div>
       </div>
 
-      <label htmlFor="pin">PIN</label>
-      <div className="copy-row">
-        <input id="pin" type="text" readOnly value={result.pin} />
-        <button type="button" onClick={() => navigator.clipboard.writeText(result.pin)}>
-          Copy
-        </button>
+      <div className="result-panel">
+        <div className="card-label">
+          <span>PIN</span>
+        </div>
+        <div className="result-value pin-value">{result.pin}</div>
+        <div className="result-row">
+          <button type="button" className="btn-secondary" onClick={() => navigator.clipboard.writeText(result.pin)}>
+            Copy PIN
+          </button>
+        </div>
       </div>
 
-      <button type="button" onClick={onReset}>
-        Create another secret
+      <button type="button" className="btn-secondary block" onClick={onReset}>
+        Send another secret
       </button>
-    </div>
+    </>
   );
 }
