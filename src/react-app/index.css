@@ -6,11 +6,109 @@
     "Segoe UI",
     Roboto,
     sans-serif;
+  --border: color-mix(in srgb, currentColor 25%, transparent);
+  --error: #d92d20;
 }
 
 body {
   margin: 0 auto;
-  max-width: 640px;
-  padding: 2rem 1rem;
+  max-width: 560px;
+  padding: 2rem 1rem 4rem;
   line-height: 1.5;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.hint {
+  opacity: 0.75;
+  font-size: 0.9rem;
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+textarea,
+select,
+input[type="text"] {
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: inherit;
+  cursor: pointer;
+  margin-top: 1.25rem;
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.copy-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.copy-row input {
+  flex: 1;
+}
+
+.copy-row button {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.secret-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: inherit;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+code {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
 }

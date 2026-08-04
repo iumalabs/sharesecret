@@ -15,3 +15,6 @@ coverage/
 !.vscode/extensions.json
 .idea/
 .claude/
+
+# Design source files (not app code, not meant to be published in the repo)
+docs/
