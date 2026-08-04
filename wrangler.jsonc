@@ -11,13 +11,11 @@
   "observability": {
     "enabled": true,
   },
-  // D1 binding is added by `wrangler d1 create` + manual wiring once the
-  // database is provisioned (see migrations/ and CONTRIBUTING.md).
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "sharesecret-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "a87d7559-4ccd-4d5f-bf6d-a5d1c5046a7e",
       "migrations_dir": "migrations",
     },
   ],
