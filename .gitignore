@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .wrangler/
+worker-configuration.d.ts
 .dev.vars
 .dev.vars.*
 *.local
@@ -13,3 +14,4 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.claude/
