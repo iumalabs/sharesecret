@@ -19,4 +19,16 @@
       "migrations_dir": "migrations",
     },
   ],
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER_CREATE",
+      "namespace_id": "1001",
+      "simple": { "limit": 20, "period": 60 },
+    },
+    {
+      "name": "RATE_LIMITER_REVEAL",
+      "namespace_id": "1002",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
 }
