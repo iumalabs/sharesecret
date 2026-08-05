@@ -1,21 +1,18 @@
 import { expect, test } from "./fixtures";
 import { PIN_ATTEMPTS } from "../src/shared/constants";
 
-// Both groups below document real gaps between the design mockup
-// (docs/sharesecret-design.zip -- ShareSecret.dc.html) and RevealPage.tsx,
-// filed as #47 and #48. Nothing here is fixed yet, so every assertion is
-// wrapped in test.fail() as a regression trap: each test documents a
+// Both groups below started out as regression traps for real gaps between
+// the design mockup (docs/sharesecret-design.zip -- ShareSecret.dc.html) and
+// RevealPage.tsx, filed as #47 and #48. #47 landed (PR #50) while this file
+// was in progress, so that group is now a plain, currently-passing
+// assertion of the shipped UI. #48 is still open, so that group stays
+// wrapped in test.fail() as a regression trap: each assertion documents a
 // currently-missing element and will start failing "unexpectedly" (in a
-// good way) the moment that element ships, which is the signal to drop the
-// test.fail() wrapper and turn it into a normal assertion.
+// good way) the moment that element ships too, which is the signal to drop
+// the test.fail() wrapper there as well.
 
-test.describe("Revealed-secret screen is missing the design's destruct-countdown UI (GH #47)", () => {
+test.describe("Revealed-secret screen shows a destruct countdown and manual burn (GH #47)", () => {
   test("shows a live 'destruct in' countdown once revealed", async ({ page, createSecret }) => {
-    test.fail(
-      true,
-      "tracked by #47 -- the 60s auto-clear (AUTO_CLEAR_MS) is a silent setTimeout, no on-screen countdown exists",
-    );
-
     const { link, pin } = await createSecret();
     await page.goto(link);
     await page.getByLabel("PIN").fill(pin);
@@ -26,23 +23,19 @@ test.describe("Revealed-secret screen is missing the design's destruct-countdown
   });
 
   test("offers a manual 'burn it now' action instead of only waiting out the timer", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #47 -- only a 'Copy content' button exists, no way to clear the screen early");
-
     const { link, pin } = await createSecret();
     await page.goto(link);
     await page.getByLabel("PIN").fill(pin);
     await page.getByRole("button", { name: "Reveal secret" }).click();
     await expect(page.getByRole("heading", { name: "Secret revealed" })).toBeVisible();
 
-    await expect(page.getByRole("button", { name: /burn it now/i })).toBeVisible();
+    const burnButton = page.getByRole("button", { name: /burn it now/i });
+    await expect(burnButton).toBeVisible();
+    await burnButton.click();
+    await expect(page.getByRole("heading", { name: "Secret cleared" })).toBeVisible();
   });
 
   test("warns the reader to copy the secret before the timer ends", async ({ page, createSecret }) => {
-    test.fail(
-      true,
-      "tracked by #47 -- current copy only explains the secret can't be viewed again, not that a live timer is running",
-    );
-
     const { link, pin } = await createSecret();
     await page.goto(link);
     await page.getByLabel("PIN").fill(pin);
