@@ -168,6 +168,42 @@ test.describe("revealed-secret auto-clear", () => {
   });
 });
 
+test.describe("revealed-secret countdown & manual burn", () => {
+  // GH #47: the revealed screen auto-clears (see the describe block above)
+  // but previously gave the reader no visible indication a clock was
+  // running at all. These cover the countdown text/progress bar and the
+  // "Burn it now" escape hatch added to close that gap.
+
+  test("shows a live destruct countdown that ticks down", async ({ page, createSecret }) => {
+    await page.clock.install();
+
+    const { link, pin } = await createSecret("countdown probe");
+    await page.goto(link);
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+    await expect(page.getByRole("heading", { name: "Secret revealed" })).toBeVisible();
+
+    await expect(page.getByText("Destruct in 01:00")).toBeVisible();
+
+    await page.clock.fastForward(15_000);
+    await expect(page.getByText("Destruct in 00:45")).toBeVisible();
+  });
+
+  test("'Burn it now' clears the screen immediately, without waiting for the timeout", async ({ page, createSecret }) => {
+    const message = "manual burn probe";
+    const { link, pin } = await createSecret(message);
+    await page.goto(link);
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+    await expect(page.getByRole("heading", { name: "Secret revealed" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Burn it now" }).click();
+
+    await expect(page.getByRole("heading", { name: "Secret cleared" })).toBeVisible();
+    await expect(page.getByText(message)).toHaveCount(0);
+  });
+});
+
 test.describe("PIN keyboard interaction", () => {
   test("Enter key submits the PIN form", async ({ page, createSecret }) => {
     const { link, pin } = await createSecret();
