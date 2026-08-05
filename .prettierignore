@@ -1,6 +1,6 @@
 dist
 .wrangler
+.vite
 node_modules
 worker-configuration.d.ts
-pnpm-lock.yaml
-package-lock.json
+deno.lock

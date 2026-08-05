@@ -36,7 +36,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
+    command: `deno task dev --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}/api/v1/ping`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
