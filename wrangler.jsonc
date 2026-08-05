@@ -7,13 +7,13 @@
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
+    "not_found_handling": "single-page-application"
   },
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
   "triggers": {
-    "crons": ["*/5 * * * *"],
+    "crons": ["*/5 * * * *"]
   },
   "routes": [{ "pattern": "sharesecret.maksimyugai.com", "custom_domain": true }],
   "d1_databases": [
@@ -21,19 +21,19 @@
       "binding": "DB",
       "database_name": "sharesecret-db",
       "database_id": "a87d7559-4ccd-4d5f-bf6d-a5d1c5046a7e",
-      "migrations_dir": "migrations",
-    },
+      "migrations_dir": "migrations"
+    }
   ],
   "ratelimits": [
     {
       "name": "RATE_LIMITER_CREATE",
       "namespace_id": "1001",
-      "simple": { "limit": 20, "period": 60 },
+      "simple": { "limit": 20, "period": 60 }
     },
     {
       "name": "RATE_LIMITER_REVEAL",
       "namespace_id": "1002",
-      "simple": { "limit": 10, "period": 60 },
-    },
-  ],
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ]
 }

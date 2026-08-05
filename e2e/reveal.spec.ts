@@ -1,4 +1,4 @@
-import { test, expect, gotoFresh } from "./fixtures";
+import { expect, gotoFresh, test } from "./fixtures";
 import { PIN_ATTEMPTS } from "../src/shared/constants";
 
 test.describe("PIN entry", () => {
@@ -46,10 +46,7 @@ test.describe("PIN entry", () => {
     await expect(page.locator("pre.secret-body")).toHaveText(message);
   });
 
-  test("wrong PIN shows an error with attempts remaining, and does not consume the secret", async ({
-    page,
-    createSecret,
-  }) => {
+  test("wrong PIN shows an error with attempts remaining, and does not consume the secret", async ({ page, createSecret }) => {
     const { link } = await createSecret();
     await page.goto(link);
 
@@ -63,10 +60,7 @@ test.describe("PIN entry", () => {
     await expect(page.getByRole("heading", { name: "Someone left you a sealed note" })).toBeVisible();
   });
 
-  test(`destroys the secret after ${PIN_ATTEMPTS} wrong PINs, even for the correct PIN afterwards`, async ({
-    page,
-    createSecret,
-  }) => {
+  test(`destroys the secret after ${PIN_ATTEMPTS} wrong PINs, even for the correct PIN afterwards`, async ({ page, createSecret }) => {
     const { link } = await createSecret();
     await page.goto(link);
 

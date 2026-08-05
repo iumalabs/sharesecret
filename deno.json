@@ -9,34 +9,27 @@
     "@axe-core/playwright": "npm:@axe-core/playwright@^4.12.1",
     "@cloudflare/vite-plugin": "npm:@cloudflare/vite-plugin@^1.50.0",
     "@cloudflare/vitest-pool-workers": "npm:@cloudflare/vitest-pool-workers@^0.20.1",
-    "@eslint/js": "npm:@eslint/js@^9.38.0",
     "@playwright/test": "npm:@playwright/test@^1.62.1",
     "@types/node": "npm:@types/node@^24.13.3",
     "@types/qrcode": "npm:@types/qrcode@^1.5.6",
     "@types/react": "npm:@types/react@^19.2.18",
     "@types/react-dom": "npm:@types/react-dom@^19.2.4",
     "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^5.0.4",
-    "eslint": "npm:eslint@^9.38.0",
-    "eslint-plugin-react-hooks": "npm:eslint-plugin-react-hooks@^7.1.1",
-    "eslint-plugin-react-refresh": "npm:eslint-plugin-react-refresh@^0.5.3",
-    "globals": "npm:globals@^16.4.0",
-    "prettier": "npm:prettier@^3.9.6",
     "typescript": "npm:typescript@5.9.3",
-    "typescript-eslint": "npm:typescript-eslint@^8.66.0",
     "vite": "npm:vite@^7.1.12",
     "vitest": "npm:vitest@^4.1.10",
     "wrangler": "npm:wrangler@^4.118.0"
   },
   "tasks": {
-    "dev": "deno run -A npm:vite dev",
-    "build": "deno run -A npm:vite build",
-    "preview": "deno run -A npm:vite preview",
+    "dev": "deno run -A npm:vite dev --config src/react-app/vite.config.ts",
+    "build": "deno run -A npm:vite build --config src/react-app/vite.config.ts",
+    "preview": "deno run -A npm:vite preview --config src/react-app/vite.config.ts",
     "deploy": "deno task build && deno run -A npm:wrangler deploy",
     "cf-typegen": "deno run -A npm:wrangler types",
-    "lint": "deno run -A npm:eslint .",
-    "lint:fix": "deno run -A npm:eslint . --fix",
-    "format": "deno run -A npm:prettier --write .",
-    "format:check": "deno run -A npm:prettier --check .",
+    "lint": "deno lint",
+    "lint:fix": "deno lint --fix",
+    "format": "deno fmt",
+    "format:check": "deno fmt --check",
     "typecheck": "DENO_COMPAT=1 deno check src/worker/**/*.ts src/shared/**/*.ts && DENO_COMPAT=1 deno check src/react-app/**/*.ts src/react-app/**/*.tsx",
     "test": "deno run -A npm:vitest run",
     "test:watch": "deno run -A npm:vitest",
@@ -47,5 +40,31 @@
     "gen-dev-vars": "deno run --allow-read --allow-write scripts/gen-dev-vars.ts"
   },
   "allowScripts": ["npm:workerd"],
-  "workspace": ["src/worker", "src/react-app"]
+  "workspace": ["src/worker", "src/react-app"],
+  "fmt": {
+    "lineWidth": 120,
+    "exclude": [
+      "dist",
+      ".wrangler",
+      "worker-configuration.d.ts",
+      "deno.lock",
+      "e2e/test-results",
+      "e2e/playwright-report"
+    ]
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended", "react"],
+      // no-window/no-window-prefix assume Deno-as-runtime code (where
+      // `window` doesn't exist -- use `globalThis`). This is a browser-facing
+      // SPA: `window` is correct, idiomatic, and expected throughout
+      // src/react-app/ and inside Playwright's page.evaluate() callbacks in
+      // e2e/. The Worker/DOM boundary these rules would otherwise gesture at
+      // is already enforced more precisely by `deno check` -- see
+      // src/worker/deno.json's restricted `lib`, verified with a negative
+      // control (SS-002).
+      "exclude": ["no-window", "no-window-prefix"]
+    },
+    "exclude": ["dist", ".wrangler", "worker-configuration.d.ts"]
+  }
 }

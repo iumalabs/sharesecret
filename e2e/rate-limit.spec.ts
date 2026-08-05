@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { expect, test } from "./fixtures";
 
 // Exercises src/worker/middleware/rate-limit.ts directly against the API
 // (bypassing the UI, which would be far slower for firing this many

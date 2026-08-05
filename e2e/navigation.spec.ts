@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { expect, test } from "./fixtures";
 
 test.describe("top nav", () => {
   test("New secret is marked current on the home page", async ({ page }) => {

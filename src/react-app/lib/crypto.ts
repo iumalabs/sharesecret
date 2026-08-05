@@ -30,7 +30,7 @@ function fromBase64Url(value: string): Uint8Array {
   return bytes;
 }
 
-export async function generateKey(): Promise<CryptoKey> {
+export function generateKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
 
@@ -39,7 +39,7 @@ export async function exportKey(key: CryptoKey): Promise<string> {
   return toBase64Url(new Uint8Array(raw));
 }
 
-export async function importKey(encoded: string): Promise<CryptoKey> {
+export function importKey(encoded: string): Promise<CryptoKey> {
   const raw = fromBase64Url(encoded);
   return crypto.subtle.importKey("raw", raw as BufferSource, { name: "AES-GCM" }, false, ["decrypt"]);
 }

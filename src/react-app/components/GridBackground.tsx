@@ -45,13 +45,12 @@ export default function GridBackground() {
     function accentRgb(): [number, number, number] {
       const value = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
       if (!value.startsWith("#")) return [167, 139, 250];
-      const hex =
-        value.length === 4
-          ? value
-              .slice(1)
-              .split("")
-              .map((c) => parseInt(c + c, 16))
-          : [value.slice(1, 3), value.slice(3, 5), value.slice(5, 7)].map((c) => parseInt(c, 16));
+      const hex = value.length === 4
+        ? value
+          .slice(1)
+          .split("")
+          .map((c) => parseInt(c + c, 16))
+        : [value.slice(1, 3), value.slice(3, 5), value.slice(5, 7)].map((c) => parseInt(c, 16));
       return [hex[0], hex[1], hex[2]];
     }
     let rgb = accentRgb();

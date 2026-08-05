@@ -1,6 +1,0 @@
-dist
-.wrangler
-.vite
-node_modules
-worker-configuration.d.ts
-deno.lock
