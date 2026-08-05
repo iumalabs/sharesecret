@@ -81,7 +81,7 @@ export default function RevealPage({ id }: { id: string }) {
         <div className="status-icon" aria-hidden="true">
           ∅
         </div>
-        <h2>Incomplete link</h2>
+        <h1>Incomplete link</h1>
         <p>
           This link is missing its decryption key. Make sure you copied the entire link, including everything after the{" "}
           <code>#</code>.
@@ -96,7 +96,7 @@ export default function RevealPage({ id }: { id: string }) {
         <div className="status-icon" aria-hidden="true">
           ∅
         </div>
-        <h2>Secret not found</h2>
+        <h1>Secret not found</h1>
         <p>This secret has already been viewed, has expired, or never existed.</p>
       </div>
     );
@@ -108,7 +108,7 @@ export default function RevealPage({ id }: { id: string }) {
         <div className="status-icon" aria-hidden="true">
           ∅
         </div>
-        <h2>Secret destroyed</h2>
+        <h1>Secret destroyed</h1>
         <p role="alert">{status.message}</p>
       </div>
     );
@@ -145,7 +145,7 @@ export default function RevealPage({ id }: { id: string }) {
         <span className="pin-icon" aria-hidden="true">
           <Logo size={30} />
         </span>
-        <h2>Someone left you a sealed note</h2>
+        <h1 className="heading-compact">Someone left you a sealed note</h1>
         <p className="lede">Enter the PIN they gave you on another channel.</p>
       </div>
 

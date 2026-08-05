@@ -217,6 +217,14 @@ h2 {
   font-size: clamp(21px, 3.2vw, 28px);
 }
 
+/* For headings that need to stay real <h1>s for the page's heading
+   hierarchy (accessibility: exactly one <h1> per page) but are visually
+   secondary -- sized like an <h2> without being one semantically. */
+h1.heading-compact {
+  font-size: clamp(21px, 3.2vw, 28px);
+  margin-top: 20px;
+}
+
 .lede {
   font-size: 13px;
   line-height: 1.7;
@@ -519,7 +527,8 @@ button {
   color: var(--danger);
 }
 
-.status-page h2 {
+.status-page h1 {
+  font-size: clamp(21px, 3.2vw, 28px);
   margin-top: 20px;
 }
 
