@@ -10,7 +10,12 @@ type Status =
   | { kind: "not-found" }
   | { kind: "ready" }
   | { kind: "destroyed"; message: string }
-  | { kind: "revealed"; plaintext: string };
+  | { kind: "revealed"; plaintext: string }
+  | { kind: "cleared" };
+
+// How long a revealed secret stays on screen before it's auto-cleared, to
+// limit shoulder-surfing exposure if the tab is left open and unattended.
+const AUTO_CLEAR_MS = 60_000;
 
 export default function RevealPage({ id }: { id: string }) {
   const [key, setKey] = useState<CryptoKey | null>(null);
@@ -73,6 +78,22 @@ export default function RevealPage({ id }: { id: string }) {
     }
   }
 
+  useEffect(() => {
+    if (status.kind !== "revealed") return;
+
+    const clear = () => setStatus({ kind: "cleared" });
+    const timer = window.setTimeout(clear, AUTO_CLEAR_MS);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") clear();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [status.kind]);
+
   if (status.kind === "loading") return null;
 
   if (status.kind === "missing-key") {
@@ -110,6 +131,21 @@ export default function RevealPage({ id }: { id: string }) {
         </div>
         <h1>Secret destroyed</h1>
         <p role="alert">{status.message}</p>
+      </div>
+    );
+  }
+
+  if (status.kind === "cleared") {
+    return (
+      <div className="status-page">
+        <div className="status-icon" aria-hidden="true">
+          ∅
+        </div>
+        <h1>Secret cleared</h1>
+        <p>
+          This secret was already deleted from the server after being read once, and has now been cleared from your
+          screen for safety.
+        </p>
       </div>
     );
   }
