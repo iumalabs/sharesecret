@@ -15,6 +15,7 @@
     "@types/react": "npm:@types/react@^19.2.18",
     "@types/react-dom": "npm:@types/react-dom@^19.2.4",
     "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^5.0.4",
+    "jsqr": "npm:jsqr@^1.4.0",
     "typescript": "npm:typescript@5.9.3",
     "vite": "npm:vite@^7.1.12",
     "vitest": "npm:vitest@^4.1.10",
