@@ -17,6 +17,23 @@ type Status =
 // limit shoulder-surfing exposure if the tab is left open and unattended.
 const AUTO_CLEAR_MS = 60_000;
 
+// Dead ends (not-found / destroyed / cleared) are commonly landed on by a
+// visitor who isn't the person who created the original secret and may not
+// otherwise know this site is also where *they'd* go to send one back --
+// without this, the top nav is the only way out.
+function StatusPageActions() {
+  return (
+    <div className="status-page-actions">
+      <a href="/" className="btn-primary inline">
+        Send a secret →
+      </a>
+      <a href="/vault" className="btn-secondary">
+        Open vault
+      </a>
+    </div>
+  );
+}
+
 export default function RevealPage({ id }: { id: string }) {
   const [key, setKey] = useState<CryptoKey | null>(null);
   const [status, setStatus] = useState<Status>(() =>
@@ -137,6 +154,7 @@ export default function RevealPage({ id }: { id: string }) {
         </div>
         <h1>Secret not found</h1>
         <p>This secret has already been viewed, has expired, or never existed.</p>
+        <StatusPageActions />
       </div>
     );
   }
@@ -149,6 +167,7 @@ export default function RevealPage({ id }: { id: string }) {
         </div>
         <h1>Secret destroyed</h1>
         <p role="alert">{status.message}</p>
+        <StatusPageActions />
       </div>
     );
   }
@@ -164,6 +183,7 @@ export default function RevealPage({ id }: { id: string }) {
           This secret was already deleted from the server after being read once, and has now been cleared from your
           screen for safety.
         </p>
+        <StatusPageActions />
       </div>
     );
   }

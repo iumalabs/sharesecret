@@ -647,6 +647,14 @@ button {
   max-width: 46ch;
 }
 
+.status-page-actions {
+  display: flex;
+  gap: 11px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .status-page .note {
   margin-top: 20px;
   padding: 14px;
