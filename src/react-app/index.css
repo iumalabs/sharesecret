@@ -614,11 +614,14 @@ code {
 
 .bg-grid {
   z-index: -2;
+  --grid-line: color-mix(in srgb, var(--accent) 6%, transparent);
   background-image:
-    linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 44px 44px;
-  opacity: 0.4;
-  mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 30%, transparent 85%);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 74px 74px;
+  /* Full width, fades out toward the bottom -- matches the mockup's canvas
+     grid, which dies out vertically rather than narrowing toward the edges. */
+  mask-image: linear-gradient(to bottom, black, transparent 65%);
 }
 
 .bg-glow {
