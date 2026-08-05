@@ -125,6 +125,55 @@ test.describe("PIN entry", () => {
   });
 });
 
+test.describe("revealed-secret auto-clear", () => {
+  // RevealPage clears the decrypted plaintext from screen 60s after reveal,
+  // or immediately if the tab is hidden -- whichever comes first (see
+  // AUTO_CLEAR_MS in RevealPage.tsx). The secret is already deleted
+  // server-side by this point; this only limits client-side exposure if
+  // someone reveals it and walks away with the tab open.
+
+  test("clears the plaintext from the screen after 60 seconds", async ({ page, createSecret }) => {
+    await page.clock.install();
+
+    const message = "auto-clear timeout probe";
+    const { link, pin } = await createSecret(message);
+    await page.goto(link);
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+    await expect(page.getByRole("heading", { name: "Secret revealed" })).toBeVisible();
+    await expect(page.locator("pre.secret-body")).toHaveText(message);
+
+    // Just under the timeout: still showing the plaintext.
+    await page.clock.fastForward(59_000);
+    await expect(page.getByRole("heading", { name: "Secret revealed" })).toBeVisible();
+
+    // Past it: cleared, and the plaintext is gone from the DOM entirely,
+    // not just visually hidden.
+    await page.clock.fastForward(2_000);
+    await expect(page.getByRole("heading", { name: "Secret cleared" })).toBeVisible();
+    await expect(page.locator("pre.secret-body")).toHaveCount(0);
+    await expect(page.getByText(message)).toHaveCount(0);
+  });
+
+  test("clears immediately when the tab becomes hidden, before the timeout", async ({ page, createSecret }) => {
+    const message = "auto-clear visibility probe";
+    const { link, pin } = await createSecret(message);
+    await page.goto(link);
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+    await expect(page.getByRole("heading", { name: "Secret revealed" })).toBeVisible();
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await expect(page.getByRole("heading", { name: "Secret cleared" })).toBeVisible();
+    await expect(page.getByText("This secret was already deleted from the server after being read once")).toBeVisible();
+    await expect(page.getByText(message)).toHaveCount(0);
+  });
+});
+
 test.describe("PIN keyboard interaction", () => {
   test("Enter key submits the PIN form", async ({ page, createSecret }) => {
     const { link, pin } = await createSecret();
