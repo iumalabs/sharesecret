@@ -2,12 +2,14 @@ const STEPS = [
   {
     step: "01 / SEAL",
     title: "Encrypted in your tab",
-    body: "A random 256-bit key is generated here and buried in the link fragment -- the part browsers never send to a server.",
+    body:
+      "A random 256-bit key is generated here and buried in the link fragment -- the part browsers never send to a server.",
   },
   {
     step: "02 / SEND",
     title: "Two channels, one secret",
-    body: "Link by mail, PIN by voice. Whoever intercepts one half gets an unopenable box -- and three wrong tries burn it.",
+    body:
+      "Link by mail, PIN by voice. Whoever intercepts one half gets an unopenable box -- and three wrong tries burn it.",
   },
   {
     step: "03 / SHRED",

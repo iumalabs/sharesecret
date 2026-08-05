@@ -1,4 +1,4 @@
-import { test, expect, parseLink } from "./fixtures";
+import { expect, parseLink, test } from "./fixtures";
 import { MAX_MESSAGE_BYTES, PIN_SIZE } from "../src/shared/constants";
 
 test.describe("compose / create secret", () => {
@@ -93,10 +93,7 @@ test.describe("compose / create secret", () => {
 });
 
 test.describe("compose form persists across the flow", () => {
-  test("message field is cleared after a successful submit (zero-knowledge -- nothing lingers)", async ({
-    page,
-    createSecret,
-  }) => {
+  test("message field is cleared after a successful submit (zero-knowledge -- nothing lingers)", async ({ page, createSecret }) => {
     await createSecret("this should not remain in any field");
     await page.getByRole("button", { name: "Send another secret" }).click();
     await expect(page.getByPlaceholder("Type the thing you shouldn't send over chat…")).toHaveValue("");
@@ -104,7 +101,7 @@ test.describe("compose form persists across the flow", () => {
 });
 
 test.describe("link shape", () => {
-  test("the sealed link points at this origin's /s/:id route", async ({ page, createSecret, baseURL }) => {
+  test("the sealed link points at this origin's /s/:id route", async ({ createSecret, baseURL }) => {
     const { link, id } = await createSecret();
     expect(link.startsWith(baseURL ?? "")).toBe(true);
     expect(parseLink(link).id).toBe(id);

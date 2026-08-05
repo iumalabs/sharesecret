@@ -5,8 +5,12 @@ export interface Params {
   defaultExpireSeconds: number;
 }
 
-export type ApiResult<T> =
-  { ok: true; data: T } | { ok: false; status: number; error: string; attemptsRemaining?: number };
+export type ApiResult<T> = { ok: true; data: T } | {
+  ok: false;
+  status: number;
+  error: string;
+  attemptsRemaining?: number;
+};
 
 async function parse<T>(res: Response): Promise<ApiResult<T>> {
   let body: unknown;

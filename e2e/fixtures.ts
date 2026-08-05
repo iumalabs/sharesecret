@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { expect, type Page, test as base } from "@playwright/test";
 import { PIN_SIZE } from "../src/shared/constants";
 
 export { expect };
@@ -77,10 +77,12 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   page: async ({ page }, use, testInfo) => {
     await page.context().setExtraHTTPHeaders({ "CF-Connecting-IP": syntheticIp(testInfo.testId) });
+    // deno-lint-ignore react-rules-of-hooks -- Playwright's fixture `use`, not React's
     await use(page);
   },
 
   createSecret: async ({ page }, use) => {
+    // deno-lint-ignore react-rules-of-hooks -- Playwright's fixture `use`, not React's
     await use(async (message = `e2e secret ${Date.now()}-${Math.random().toString(36).slice(2)}`) => {
       await page.goto("/");
       await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill(message);

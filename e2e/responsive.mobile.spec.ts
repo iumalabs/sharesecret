@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { expect, test } from "./fixtures";
 
 // Runs only under the "mobile" Playwright project (Pixel 7 viewport/UA), see
 // playwright.config.ts. Smoke-checks that the key screens render usably at

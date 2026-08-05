@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { expect, test } from "./fixtures";
 
 // Regression coverage for GridBackground.tsx, which previously shipped
 // (and shipped again after a first fix attempt) with a resting-state
@@ -18,7 +18,7 @@ interface CanvasSample {
   maxAlpha: number;
 }
 
-async function sampleGridCanvas(page: import("@playwright/test").Page): Promise<CanvasSample> {
+function sampleGridCanvas(page: import("@playwright/test").Page): Promise<CanvasSample> {
   return page.evaluate(() => {
     const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement | null;
     if (!canvas) return { found: false, nonZeroAlphaPixels: 0, totalPixels: 0, maxAlpha: 0 };
@@ -60,9 +60,7 @@ test.describe("background grid canvas", () => {
     expect(sample.nonZeroAlphaPixels).toBeGreaterThan(0);
   });
 
-  test("rest-state opacity clears a floor well above the previously-shipped invisible values (GH #23, SS-002)", async ({
-    page,
-  }) => {
+  test("rest-state opacity clears a floor well above the previously-shipped invisible values (GH #23, SS-002)", async ({ page }) => {
     await page.goto("/");
     await page.waitForTimeout(200);
 
@@ -76,10 +74,7 @@ test.describe("background grid canvas", () => {
     expect(sample.maxAlpha).toBeGreaterThan(55);
   });
 
-  test("is present (and still drawing) on the How It Works and reveal-error pages too", async ({
-    page,
-    createSecret,
-  }) => {
+  test("is present (and still drawing) on the How It Works and reveal-error pages too", async ({ page, createSecret }) => {
     await page.goto("/how");
     await page.waitForTimeout(200);
     expect((await sampleGridCanvas(page)).nonZeroAlphaPixels).toBeGreaterThan(0);

@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { expect, test } from "./fixtures";
 
 // Expiry-based destruction (TTL elapses) is covered by the Vitest API suite
 // (test/api.test.ts), which can fake wall-clock time against the Worker
@@ -43,10 +43,7 @@ test.describe("broken / incomplete links", () => {
     },
   );
 
-  test("visiting the bare root of a secret's id twice does not leak whether the id exists without a key", async ({
-    page,
-    createSecret,
-  }) => {
+  test("visiting the bare root of a secret's id twice does not leak whether the id exists without a key", async ({ page, createSecret }) => {
     const { id } = await createSecret();
     // Without the key fragment, the UI should short-circuit before ever
     // asking the server whether `id` exists -- both a real id and a fake

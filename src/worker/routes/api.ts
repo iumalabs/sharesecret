@@ -25,8 +25,7 @@ api.get("/params", (c) =>
     minExpireSeconds: MIN_EXPIRE_SECONDS,
     maxExpireSeconds: MAX_EXPIRE_SECONDS,
     defaultExpireSeconds: DEFAULT_EXPIRE_SECONDS,
-  }),
-);
+  }));
 
 interface CreateBody {
   data?: unknown;

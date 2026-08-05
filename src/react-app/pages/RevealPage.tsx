@@ -20,7 +20,7 @@ const AUTO_CLEAR_MS = 60_000;
 export default function RevealPage({ id }: { id: string }) {
   const [key, setKey] = useState<CryptoKey | null>(null);
   const [status, setStatus] = useState<Status>(() =>
-    window.location.hash.length > 1 ? { kind: "loading" } : { kind: "missing-key" },
+    window.location.hash.length > 1 ? { kind: "loading" } : { kind: "missing-key" }
   );
   const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -104,7 +104,8 @@ export default function RevealPage({ id }: { id: string }) {
         </div>
         <h1>Incomplete link</h1>
         <p>
-          This link is missing its decryption key. Make sure you copied the entire link, including everything after the{" "}
+          This link is missing its decryption key. Make sure you copied the entire link, including everything after the
+          {" "}
           <code>#</code>.
         </p>
       </div>

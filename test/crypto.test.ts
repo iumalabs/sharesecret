@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decryptText, DecryptError, encryptText, exportKey, generateKey, importKey } from "../src/react-app/lib/crypto";
+import { DecryptError, decryptText, encryptText, exportKey, generateKey, importKey } from "../src/react-app/lib/crypto";
 
 describe("client-side crypto", () => {
   it("round-trips plaintext through encrypt/decrypt with the same key", async () => {

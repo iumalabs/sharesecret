@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { test, expect, waitForFonts } from "./fixtures";
+import { expect, test, waitForFonts } from "./fixtures";
 import { PIN_ATTEMPTS } from "../src/shared/constants";
 
 // axe's color-contrast check samples actual rendered (anti-aliased) pixels,

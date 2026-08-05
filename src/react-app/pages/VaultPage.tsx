@@ -68,43 +68,45 @@ export default function VaultPage() {
         decryption key here, so this can't be used to re-open a secret's contents, only to check on it.
       </p>
 
-      {entries.length === 0 ? (
-        <div className="result-panel vault-empty">
-          <p>No secrets created in this browser yet.</p>
-          <a href="/" className="btn-primary inline">
-            Send a secret →
-          </a>
-        </div>
-      ) : (
-        <>
-          <div className="vault-counts">
-            <span>
-              <strong>{counts.live}</strong>Live
-            </span>
-            <span>
-              <strong>{counts.read}</strong>Read
-            </span>
-            <span>
-              <strong>{counts.expired}</strong>Expired
-            </span>
-            <span>
-              <strong>{counts.revoked}</strong>Revoked
-            </span>
+      {entries.length === 0
+        ? (
+          <div className="result-panel vault-empty">
+            <p>No secrets created in this browser yet.</p>
+            <a href="/" className="btn-primary inline">
+              Send a secret →
+            </a>
           </div>
+        )
+        : (
+          <>
+            <div className="vault-counts">
+              <span>
+                <strong>{counts.live}</strong>Live
+              </span>
+              <span>
+                <strong>{counts.read}</strong>Read
+              </span>
+              <span>
+                <strong>{counts.expired}</strong>Expired
+              </span>
+              <span>
+                <strong>{counts.revoked}</strong>Revoked
+              </span>
+            </div>
 
-          <div className="vault-list">
-            {entries.map((entry) => (
-              <VaultRow
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] ?? "checking"}
-                revoking={revoking === entry.id}
-                onRevoke={() => handleRevoke(entry.id)}
-              />
-            ))}
-          </div>
-        </>
-      )}
+            <div className="vault-list">
+              {entries.map((entry) => (
+                <VaultRow
+                  key={entry.id}
+                  entry={entry}
+                  status={statuses[entry.id] ?? "checking"}
+                  revoking={revoking === entry.id}
+                  onRevoke={() => handleRevoke(entry.id)}
+                />
+              ))}
+            </div>
+          </>
+        )}
     </>
   );
 }
