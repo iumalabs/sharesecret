@@ -12,10 +12,18 @@ import { useEffect, useRef } from "react";
 const STEP = 74; // grid spacing, css px
 const RADIUS = 300; // pointer influence radius
 const PULL = 26; // max node displacement toward the pointer
-// The design mockup's resting-state alpha (0.055) is imperceptible on real
-// displays (see GH #23) -- bumped here so the grid reads as a visible
-// texture at rest, not just during the pointer glow.
-const REST_ALPHA = 0.12;
+// 0.055 (design mockup) then 0.12 (GH #23) both proved imperceptible on real
+// displays -- confirmed again on real 2K/4K/Mac M4 hardware (see SS-002).
+// 0.26 roughly doubles line alpha again over the 0.12 attempt, landing in
+// the "thin visible lines at rest" range the design reference shows.
+const REST_ALPHA = 0.26;
+
+// ?grid-debug=1 renders the grid at high-visibility settings, in a color
+// that can't be confused with the real accent, plus a pointer-position
+// marker -- lets pointer reactivity be verified by eye without guessing
+// whether a dim glow is "working but subtle" or not firing at all.
+const DEBUG_COLOR = "255,0,255";
+const DEBUG_ALPHA = 0.85;
 
 type Point = [x: number, y: number, glow: number];
 
@@ -28,6 +36,8 @@ export default function GridBackground() {
     if (!canvas || !ctx) return;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const debugMode = new URLSearchParams(window.location.search).get("grid-debug") === "1";
+    let loggedFirstPointer = false;
 
     const state = { w: 0, h: 0, dpr: 1, cols: 0, rows: 0 };
     const mouse = { x: -9999, y: -9999, tx: -9999, ty: -9999, power: 0, tpower: 0 };
@@ -58,6 +68,10 @@ export default function GridBackground() {
     }
     resize();
 
+    if (debugMode) {
+      console.log(`grid-debug: on, dpr=${state.dpr}, canvas=${canvas.width}x${canvas.height}`);
+    }
+
     function warp(gx: number, gy: number, out: Point) {
       const bx = gx * STEP - STEP;
       const by = gy * STEP - STEP;
@@ -86,6 +100,16 @@ export default function GridBackground() {
 
     function seg(p: Point, q: Point, col: string) {
       const glow = Math.max(p[2], q[2]);
+      if (debugMode) {
+        ctx!.strokeStyle = `rgba(${DEBUG_COLOR},${DEBUG_ALPHA})`;
+        ctx!.lineWidth = 1 + glow * 1.5;
+        ctx!.shadowBlur = 0;
+        ctx!.beginPath();
+        ctx!.moveTo(p[0], p[1]);
+        ctx!.lineTo(q[0], q[1]);
+        ctx!.stroke();
+        return;
+      }
       const fade = veil((p[1] + q[1]) / 2);
       const alpha = (REST_ALPHA + glow * 0.5) * fade;
       if (alpha < 0.004) return;
@@ -139,6 +163,18 @@ export default function GridBackground() {
         ctx!.fillStyle = g;
         ctx!.fillRect(mouse.x - RADIUS, mouse.y - RADIUS, RADIUS * 2, RADIUS * 2);
       }
+
+      if (debugMode && mouse.tx > -9999) {
+        ctx!.strokeStyle = `rgba(${DEBUG_COLOR},1)`;
+        ctx!.lineWidth = 2;
+        ctx!.beginPath();
+        ctx!.arc(mouse.tx, mouse.ty, 14, 0, Math.PI * 2);
+        ctx!.moveTo(mouse.tx - 20, mouse.ty);
+        ctx!.lineTo(mouse.tx + 20, mouse.ty);
+        ctx!.moveTo(mouse.tx, mouse.ty - 20);
+        ctx!.lineTo(mouse.tx, mouse.ty + 20);
+        ctx!.stroke();
+      }
     }
 
     if (reducedMotion) {
@@ -154,6 +190,10 @@ export default function GridBackground() {
       mouse.tx = p.clientX;
       mouse.ty = p.clientY;
       mouse.tpower = 1;
+      if (debugMode && !loggedFirstPointer) {
+        loggedFirstPointer = true;
+        console.log(`grid-debug: first pointer event at (${p.clientX}, ${p.clientY})`);
+      }
     }
     function onPointerDown(e: PointerEvent) {
       move(e);

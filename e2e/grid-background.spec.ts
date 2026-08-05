@@ -60,19 +60,20 @@ test.describe("background grid canvas", () => {
     expect(sample.nonZeroAlphaPixels).toBeGreaterThan(0);
   });
 
-  test("rest-state opacity clears a floor well above the previously-shipped invisible value (GH #23)", async ({
+  test("rest-state opacity clears a floor well above the previously-shipped invisible values (GH #23, SS-002)", async ({
     page,
   }) => {
     await page.goto("/");
     await page.waitForTimeout(200);
 
     const sample = await sampleGridCanvas(page);
-    // The old broken constant (0.055) produced a peak alpha around 14-19/255.
-    // The current constant (0.12) produces peaks around 30-42/255. 20 sits
-    // firmly between the two, so a regression toward the old value fails
-    // this assertion instead of requiring another round of manual/visual
-    // investigation to notice.
-    expect(sample.maxAlpha).toBeGreaterThan(20);
+    // Three constants have shipped here: 0.055 (design mockup, peak ~14-19/255),
+    // 0.12 (GH #23's fix attempt, peak ~30-42/255 -- still confirmed
+    // imperceptible on real 2K/4K/Mac M4 hardware, see SS-002), and the
+    // current 0.26 (peak ~75-90/255). 55 sits above every prior attempt's
+    // ceiling, so a regression to either older value fails this assertion
+    // instead of requiring another round of manual/visual investigation.
+    expect(sample.maxAlpha).toBeGreaterThan(55);
   });
 
   test("is present (and still drawing) on the How It Works and reveal-error pages too", async ({
@@ -110,5 +111,57 @@ test.describe("background grid canvas", () => {
     expect(second.maxAlpha).toBe(first.maxAlpha);
 
     expect(errors).toEqual([]);
+  });
+
+  test("?grid-debug=1 renders the grid in loud magenta and logs on mount -- absent by default", async ({ page }) => {
+    const logs: string[] = [];
+    page.on("console", (msg) => logs.push(msg.text()));
+
+    await page.goto("/");
+    await page.waitForTimeout(200);
+    expect(logs.some((l) => l.includes("grid-debug"))).toBe(false);
+
+    await page.goto("/?grid-debug=1");
+    await page.waitForTimeout(200);
+
+    expect(logs.some((l) => l.includes("grid-debug: on"))).toBe(true);
+
+    const sample = await page.evaluate(() => {
+      const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement;
+      const ctx = canvas.getContext("2d")!;
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let magentaPixels = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 200 && data[i + 1] < 50 && data[i + 2] > 200 && data[i + 3] > 150) magentaPixels++;
+      }
+      return magentaPixels;
+    });
+    expect(sample).toBeGreaterThan(0);
+  });
+
+  test("?grid-debug=1 marker tracks the pointer and logs the first event once", async ({ page }) => {
+    const logs: string[] = [];
+    page.on("console", (msg) => logs.push(msg.text()));
+
+    await page.goto("/?grid-debug=1");
+    await page.waitForTimeout(200);
+    await page.mouse.move(300, 300);
+    await page.mouse.move(320, 310); // a second move shouldn't produce a second log
+    await page.waitForTimeout(200);
+
+    const firstPointerLogs = logs.filter((l) => l.includes("grid-debug: first pointer event"));
+    expect(firstPointerLogs.length).toBe(1);
+
+    const nearMarker = await page.evaluate(() => {
+      const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement;
+      const ctx = canvas.getContext("2d")!;
+      const data = ctx.getImageData(280, 280, 60, 60).data;
+      let magentaPixels = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 200 && data[i + 1] < 50 && data[i + 2] > 200 && data[i + 3] > 150) magentaPixels++;
+      }
+      return magentaPixels;
+    });
+    expect(nearMarker).toBeGreaterThan(0);
   });
 });
