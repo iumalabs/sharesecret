@@ -1,15 +1,8 @@
 import { expect, test } from "./fixtures";
 
-// Regression coverage for GridBackground.tsx, which has shipped several
-// times with a resting-state opacity too low to be perceptible on real
-// displays (GH #23, then again after a first fix attempt -- see SS-002)
-// before the root cause turned out to be the Canvas 2D rendering path itself
-// (thin, low-alpha strokes render inconsistently across real GPU/driver
-// combinations), not just the alpha value. The primary path is now WebGL2,
-// ported from the design mockup's grid-webgl.js. When WebGL2 is unavailable
-// the fallback is a pure-CSS grid (background-image + mask), not Canvas 2D
-// -- the design mockup dropped its Canvas 2D fallback for the same reason it
-// dropped Canvas 2D as the primary renderer. These tests sample whichever
+// Regression coverage for GridBackground.tsx: WebGL2 is the primary render
+// path (ported from the design mockup's grid-webgl.js), with a pure-CSS grid
+// as the fallback for browsers without WebGL2. These tests sample whichever
 // path the component actually took, since Chromium (this suite's browser)
 // supports WebGL2 and will exercise the primary path by default.
 
@@ -52,38 +45,6 @@ function sampleGridCanvas(page: import("@playwright/test").Page): Promise<Canvas
     }
     return { found: true, nonZeroAlphaPixels, totalPixels: data.length / 4, maxAlpha };
   });
-}
-
-// Counts magenta (debug-mode) pixels in a CSS-pixel region, handling the
-// WebGL/Canvas2D context difference and WebGL's bottom-up readPixels origin.
-function countMagentaInRegion(
-  page: import("@playwright/test").Page,
-  region: { x: number; y: number; w: number; h: number },
-): Promise<number> {
-  return page.evaluate((r) => {
-    const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement;
-    const gl = canvas.getContext("webgl2");
-    let data: Uint8Array | Uint8ClampedArray;
-    if (gl) {
-      const dpr = canvas.width / window.innerWidth;
-      const w = Math.round(r.w * dpr);
-      const h = Math.round(r.h * dpr);
-      const x = Math.round(r.x * dpr);
-      // WebGL's readPixels origin is bottom-left; flip the CSS top-down y.
-      const y = canvas.height - Math.round((r.y + r.h) * dpr);
-      const pixels = new Uint8Array(w * h * 4);
-      gl.readPixels(x, Math.max(0, y), w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-      data = pixels;
-    } else {
-      const ctx = canvas.getContext("2d")!;
-      data = ctx.getImageData(r.x, r.y, r.w, r.h).data;
-    }
-    let magentaPixels = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i] > 150 && data[i + 1] < 50 && data[i + 2] > 150 && data[i + 3] > 80) magentaPixels++;
-    }
-    return magentaPixels;
-  }, region);
 }
 
 test.describe("background grid canvas", () => {
@@ -155,41 +116,6 @@ test.describe("background grid canvas", () => {
     expect(second.maxAlpha).toBe(first.maxAlpha);
 
     expect(errors).toEqual([]);
-  });
-
-  test("?grid-debug=1 renders the grid in loud magenta and logs on mount -- absent by default", async ({ page }) => {
-    const logs: string[] = [];
-    page.on("console", (msg) => logs.push(msg.text()));
-
-    await page.goto("/");
-    await page.waitForTimeout(200);
-    expect(logs.some((l) => l.includes("grid-debug"))).toBe(false);
-
-    await page.goto("/?grid-debug=1");
-    await page.waitForTimeout(200);
-
-    expect(logs.some((l) => l.includes("grid-debug: on"))).toBe(true);
-
-    const viewport = page.viewportSize()!;
-    const magentaPixels = await countMagentaInRegion(page, { x: 0, y: 0, w: viewport.width, h: viewport.height });
-    expect(magentaPixels).toBeGreaterThan(0);
-  });
-
-  test("?grid-debug=1 marker tracks the pointer and logs the first event once", async ({ page }) => {
-    const logs: string[] = [];
-    page.on("console", (msg) => logs.push(msg.text()));
-
-    await page.goto("/?grid-debug=1");
-    await page.waitForTimeout(200);
-    await page.mouse.move(300, 300);
-    await page.mouse.move(320, 310); // a second move shouldn't produce a second log
-    await page.waitForTimeout(200);
-
-    const firstPointerLogs = logs.filter((l) => l.includes("grid-debug: first pointer event"));
-    expect(firstPointerLogs.length).toBe(1);
-
-    const nearMarker = await countMagentaInRegion(page, { x: 270, y: 270, w: 60, h: 60 });
-    expect(nearMarker).toBeGreaterThan(0);
   });
 
   test("falls back to a pure-CSS grid when WebGL2 is unavailable, with no console errors", async ({ page }) => {

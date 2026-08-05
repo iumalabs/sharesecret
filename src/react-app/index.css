@@ -649,15 +649,11 @@ code {
 }
 
 /* -- decorative background (grid + glow), purely cosmetic, behind everything --
-   Uses z-index: 0 (not negative) with .shell promoted to its own stacking
-   context at z-index: 1 below -- confirmed via live testing on real hardware
-   that negative z-index on a `position: fixed` element at the root stacking
-   context can fail to composite at all on some browser/GPU combinations
-   (reproduced identically across Chromium, WebKit and Gecko on the same
-   machine, so it's a platform/driver-level issue, not an engine bug): even a
-   plain opaque `background-color` set directly on the element -- no canvas
-   or WebGL involved -- never appeared on screen while z-index was negative,
-   and appeared immediately once it was changed to 0. */
+   Don't use a negative z-index here: on some real browser/GPU combinations a
+   `position: fixed` element with negative z-index silently fails to
+   composite onto the screen at all, even though it paints correctly into its
+   own buffer. Keep this at z-index: 0 and .shell (below) promoted to
+   z-index: 1 instead. */
 
 .bg-grid-canvas,
 .bg-grid-css-fallback,
