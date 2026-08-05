@@ -649,6 +649,7 @@ code {
 /* -- decorative background (grid + glow), purely cosmetic, behind everything -- */
 
 .bg-grid-canvas,
+.bg-grid-css-fallback,
 .bg-glow {
   position: fixed;
   inset: 0;
@@ -661,6 +662,10 @@ code {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.bg-grid-css-fallback {
+  z-index: -2;
 }
 
 .bg-glow {

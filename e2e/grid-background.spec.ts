@@ -1,15 +1,17 @@
 import { expect, test } from "./fixtures";
 
-// Regression coverage for GridBackground.tsx, which has shipped three times
-// with a resting-state opacity too low to be perceptible on real displays
-// (GH #23, then again after a first fix attempt -- see SS-002) before the
-// root cause turned out to be the Canvas 2D rendering path itself (thin,
-// low-alpha strokes render inconsistently across real GPU/driver
+// Regression coverage for GridBackground.tsx, which has shipped several
+// times with a resting-state opacity too low to be perceptible on real
+// displays (GH #23, then again after a first fix attempt -- see SS-002)
+// before the root cause turned out to be the Canvas 2D rendering path itself
+// (thin, low-alpha strokes render inconsistently across real GPU/driver
 // combinations), not just the alpha value. The primary path is now WebGL2,
-// ported from the design mockup's grid-webgl.js, with the old Canvas 2D
-// approach kept only as a fallback for browsers without WebGL2. These tests
-// sample whichever context the component actually created, since Chromium
-// (this suite's browser) supports WebGL2 and will exercise the primary path.
+// ported from the design mockup's grid-webgl.js. When WebGL2 is unavailable
+// the fallback is a pure-CSS grid (background-image + mask), not Canvas 2D
+// -- the design mockup dropped its Canvas 2D fallback for the same reason it
+// dropped Canvas 2D as the primary renderer. These tests sample whichever
+// path the component actually took, since Chromium (this suite's browser)
+// supports WebGL2 and will exercise the primary path by default.
 
 interface CanvasSample {
   found: boolean;
@@ -188,7 +190,7 @@ test.describe("background grid canvas", () => {
     expect(nearMarker).toBeGreaterThan(0);
   });
 
-  test("falls back to Canvas 2D when WebGL2 is unavailable, with no console errors", async ({ page }) => {
+  test("falls back to a pure-CSS grid when WebGL2 is unavailable, with no console errors", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
@@ -204,9 +206,25 @@ test.describe("background grid canvas", () => {
     await page.goto("/");
     await page.waitForTimeout(200);
 
-    const sample = await sampleGridCanvas(page);
-    expect(sample.found).toBe(true);
-    expect(sample.nonZeroAlphaPixels).toBeGreaterThan(0);
+    // The canvas itself is hidden -- the fallback doesn't touch it at all,
+    // it paints via a sibling div's background-image/mask instead.
+    const canvasDisplay = await page.locator("canvas.bg-grid-canvas").evaluate((el) => getComputedStyle(el).display);
+    expect(canvasDisplay).toBe("none");
+
+    const fallback = page.locator(".bg-grid-css-fallback");
+    await expect(fallback).toBeAttached();
+    const style = await fallback.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        backgroundImage: cs.backgroundImage,
+        opacity: cs.opacity,
+        maskImage: cs.maskImage || cs.webkitMaskImage,
+      };
+    });
+    expect(style.backgroundImage).toContain("repeating-linear-gradient");
+    expect(Number(style.opacity)).toBeGreaterThan(0);
+    expect(style.maskImage).toContain("radial-gradient");
+
     expect(errors).toEqual([]);
   });
 });

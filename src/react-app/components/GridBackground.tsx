@@ -9,28 +9,29 @@ import { useEffect, useRef } from "react";
  * sub-pixel-width, low-alpha strokes rendered inconsistently across real
  * GPU/driver/browser combinations in a way that never showed up in this
  * repo's own dev-environment pixel checks, only on real end-user hardware.
- * Falls back to the old Canvas 2D approach if WebGL2 isn't available.
  *
- * Respects prefers-reduced-motion: draws a single static frame (no pointer
- * tracking, no animation loop) instead of the interactive version.
+ * When WebGL2 isn't available, falls back to a pure-CSS grid (repeating
+ * background-image gradients + a radial-gradient mask for the cursor
+ * spotlight) instead of Canvas 2D -- the design mockup dropped its Canvas 2D
+ * fallback for the same reason it dropped Canvas 2D as the primary path:
+ * canvas rendering (2D or WebGL) is JS-driven and can silently fail to
+ * composite in ways `getImageData`/`readPixels` readbacks don't catch, while
+ * a CSS background-image is painted by the browser's normal box-rendering
+ * pipeline with no draw calls to go wrong.
+ *
+ * Respects prefers-reduced-motion: draws a single static frame / skips
+ * pointer tracking instead of the interactive version.
  */
 
 const STEP = 74; // grid spacing, css px
 const RADIUS = 300; // pointer influence radius
 const PULL = 26; // max node displacement toward the pointer
-// Canvas-2D fallback only. 0.055 (design mockup) then 0.12 (GH #23) both
-// proved imperceptible on real displays; 0.26 was still reported invisible
-// on real hardware (see SS-002 follow-up) -- turned out to be a rendering
-// reliability issue with thin Canvas-2D strokes, not just contrast, which
-// is why the primary path below is WebGL now instead of a fourth alpha bump.
-const REST_ALPHA = 0.26;
 
 // ?grid-debug=1 renders the grid at high-visibility settings, in a color
 // that can't be confused with the real accent, plus a pointer-position
 // marker -- lets pointer reactivity be verified by eye without guessing
 // whether a dim glow is "working but subtle" or not firing at all.
 const DEBUG_COLOR = "255,0,255";
-const DEBUG_ALPHA = 0.85;
 
 const VERT_SRC = `#version 300 es
 in vec2 a_pos;
@@ -64,12 +65,12 @@ void main() {
 
   vec2 uv = q / u_step;
   vec2 g = abs(fract(uv - 0.5) - 0.5) * u_step;
-  float line = 1.0 - smoothstep(u_lw * 0.5, u_lw * 1.6, min(g.x, g.y));
+  float line = 1.0 - smoothstep(u_lw * 0.6, u_lw * 1.9, min(g.x, g.y));
 
   vec2 nd = (fract(uv - 0.5) - 0.5) * u_step;
   float node = (1.0 - smoothstep(0.0, 1.2 + f * 2.4, length(nd))) * f;
 
-  float veil = clamp(1.0 - max(0.0, p.y - u_res.y * 0.15) / (u_res.y * 1.05), 0.0, 1.0);
+  float veil = clamp(1.0 - max(0.0, p.y - u_res.y * 0.38) / (u_res.y * 1.25), 0.0, 1.0);
 
   if (u_debug > 0.5) {
     float ink = clamp(line + node, 0.0, 1.0);
@@ -84,7 +85,7 @@ void main() {
     return;
   }
 
-  float a = clamp((line * (0.12 + f * 0.62) + node * 0.95) * veil + f * f * 0.09, 0.0, 1.0);
+  float a = clamp((line * (0.15 + f * 0.7) + node * 0.95) * veil + f * f * 0.1, 0.0, 1.0);
   vec3 c = u_col * clamp(1.0 + f * 0.6, 0.0, 2.0);
   outColor = vec4(c * a, a); // premultiplied
 }`;
@@ -271,216 +272,53 @@ function setupWebGL(
   };
 }
 
-type Point = [x: number, y: number, glow: number];
-
-function setupCanvas2D(canvas: HTMLCanvasElement, debugMode: boolean, reducedMotion: boolean): () => void {
-  const ctx = canvas.getContext("2d")!;
-
-  const state = { w: 0, h: 0, dpr: 1, cols: 0, rows: 0 };
-  const mouse = { x: -9999, y: -9999, tx: -9999, ty: -9999, power: 0, tpower: 0 };
-  let loggedFirstPointer = false;
-
-  function accentRgb(): [number, number, number] {
-    const value = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
-    if (!value.startsWith("#")) return [167, 139, 250];
-    const hex = value.length === 4
-      ? value
-        .slice(1)
-        .split("")
-        .map((c) => parseInt(c + c, 16))
-      : [value.slice(1, 3), value.slice(3, 5), value.slice(5, 7)].map((c) => parseInt(c, 16));
-    return [hex[0], hex[1], hex[2]];
-  }
-  let rgb = accentRgb();
-
-  function resize() {
-    state.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    state.w = window.innerWidth;
-    state.h = window.innerHeight;
-    canvas.width = Math.round(state.w * state.dpr);
-    canvas.height = Math.round(state.h * state.dpr);
-    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-    state.cols = Math.ceil(state.w / STEP) + 2;
-    state.rows = Math.ceil(state.h / STEP) + 2;
-  }
-  resize();
-
+// Pure-CSS fallback for browsers without WebGL2: a repeating-gradient grid
+// plus a radial-gradient mask so it still fades toward the bottom of the
+// screen and spotlights the cursor, without ever touching a canvas.
+function setupCssFallback(host: HTMLDivElement, debugMode: boolean, reducedMotion: boolean): () => void {
   if (debugMode) {
-    console.log(`grid-debug: on (canvas2d fallback), dpr=${state.dpr}, canvas=${canvas.width}x${canvas.height}`);
+    console.log("grid-debug: on (css fallback, no WebGL2)");
   }
 
-  function warp(gx: number, gy: number, out: Point) {
-    const bx = gx * STEP - STEP;
-    const by = gy * STEP - STEP;
-    const dx = mouse.x - bx;
-    const dy = mouse.y - by;
-    const d = Math.hypot(dx, dy);
-    if (d > RADIUS || mouse.power < 0.01) {
-      out[0] = bx;
-      out[1] = by;
-      out[2] = 0;
-      return;
-    }
-    const f = Math.pow(1 - d / RADIUS, 2.1) * mouse.power;
-    const k = (PULL * f) / (d || 1);
-    out[0] = bx + dx * k;
-    out[1] = by + dy * k;
-    out[2] = f;
-  }
+  const color = debugMode ? `rgb(${DEBUG_COLOR})` : "var(--accent, #a78bfa)";
+  const step = `${STEP}px`;
+  host.style.backgroundImage = `repeating-linear-gradient(90deg, ${color} 0 1px, transparent 1px ${step}), ` +
+    `repeating-linear-gradient(0deg, ${color} 0 1px, transparent 1px ${step})`;
+  host.style.opacity = debugMode ? "0.9" : "0.16";
+  host.style.setProperty("--gx", "50%");
+  host.style.setProperty("--gy", "30%");
+  const mask = "radial-gradient(320px at var(--gx,50%) var(--gy,30%), #000, rgba(0,0,0,.35) 70%), " +
+    "linear-gradient(#000 40%, transparent)";
+  host.style.setProperty("mask-image", mask);
+  host.style.setProperty("-webkit-mask-image", mask);
+  host.style.setProperty("mask-composite", "intersect");
+  host.style.setProperty("-webkit-mask-composite", "source-in");
 
-  const a: Point = [0, 0, 0];
-  const b: Point = [0, 0, 0];
-
-  function veil(y: number): number {
-    return Math.max(0, 1 - Math.max(0, y - state.h * 0.15) / (state.h * 1.05));
-  }
-
-  function seg(p: Point, q: Point, col: string) {
-    const glow = Math.max(p[2], q[2]);
-    if (debugMode) {
-      ctx.strokeStyle = `rgba(${DEBUG_COLOR},${DEBUG_ALPHA})`;
-      ctx.lineWidth = 1 + glow * 1.5;
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.moveTo(p[0], p[1]);
-      ctx.lineTo(q[0], q[1]);
-      ctx.stroke();
-      return;
-    }
-    const fade = veil((p[1] + q[1]) / 2);
-    const alpha = (REST_ALPHA + glow * 0.5) * fade;
-    if (alpha < 0.004) return;
-    ctx.strokeStyle = `rgba(${col},${alpha.toFixed(3)})`;
-    ctx.lineWidth = 0.8 + glow * 1.5;
-    ctx.shadowBlur = glow > 0.25 ? 14 * glow : 0;
-    ctx.shadowColor = `rgba(${col},${(glow * 0.6).toFixed(3)})`;
-    ctx.beginPath();
-    ctx.moveTo(p[0], p[1]);
-    ctx.lineTo(q[0], q[1]);
-    ctx.stroke();
-  }
-
-  function frame() {
-    const col = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-    ctx.clearRect(0, 0, state.w, state.h);
-    ctx.lineCap = "round";
-
-    for (let gy = 0; gy < state.rows; gy++) {
-      for (let gx = 0; gx < state.cols - 1; gx++) {
-        warp(gx, gy, a);
-        warp(gx + 1, gy, b);
-        seg(a, b, col);
-      }
-    }
-    for (let gx = 0; gx < state.cols; gx++) {
-      for (let gy = 0; gy < state.rows - 1; gy++) {
-        warp(gx, gy, a);
-        warp(gx, gy + 1, b);
-        seg(a, b, col);
-      }
-    }
-
-    ctx.shadowBlur = 0;
-    for (let gy = 0; gy < state.rows; gy++) {
-      for (let gx = 0; gx < state.cols; gx++) {
-        warp(gx, gy, a);
-        if (a[2] < 0.12) continue;
-        const al = a[2] * 0.85 * veil(a[1]);
-        ctx.fillStyle = `rgba(${col},${al.toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(a[0], a[1], 0.8 + a[2] * 2.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    if (mouse.power > 0.02) {
-      const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, RADIUS * 0.8);
-      g.addColorStop(0, `rgba(${col},${(0.1 * mouse.power).toFixed(3)})`);
-      g.addColorStop(1, `rgba(${col},0)`);
-      ctx.fillStyle = g;
-      ctx.fillRect(mouse.x - RADIUS, mouse.y - RADIUS, RADIUS * 2, RADIUS * 2);
-    }
-
-    if (debugMode && mouse.tx > -9999) {
-      ctx.strokeStyle = `rgba(${DEBUG_COLOR},1)`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(mouse.tx, mouse.ty, 14, 0, Math.PI * 2);
-      ctx.moveTo(mouse.tx - 20, mouse.ty);
-      ctx.lineTo(mouse.tx + 20, mouse.ty);
-      ctx.moveTo(mouse.tx, mouse.ty - 20);
-      ctx.lineTo(mouse.tx, mouse.ty + 20);
-      ctx.stroke();
-    }
-  }
-
-  if (reducedMotion) {
-    frame();
-    return () => {};
-  }
+  if (reducedMotion) return () => {};
 
   function move(e: PointerEvent | TouchEvent) {
     const p = "touches" in e ? e.touches[0] : e;
     if (!p) return;
-    mouse.tx = p.clientX;
-    mouse.ty = p.clientY;
-    mouse.tpower = 1;
-    if (debugMode && !loggedFirstPointer) {
-      loggedFirstPointer = true;
-      console.log(`grid-debug: first pointer event at (${p.clientX}, ${p.clientY})`);
-    }
+    host.style.setProperty("--gx", `${p.clientX}px`);
+    host.style.setProperty("--gy", `${p.clientY}px`);
   }
-  function onPointerDown(e: PointerEvent) {
-    move(e);
-    mouse.tpower = 1.7;
-  }
-  function onPointerUp() {
-    mouse.tpower = 1;
-  }
-  function onMouseLeave() {
-    mouse.tpower = 0;
-  }
-
-  window.addEventListener("resize", resize);
   window.addEventListener("pointermove", move, { passive: true });
   window.addEventListener("touchmove", move, { passive: true });
-  window.addEventListener("pointerdown", onPointerDown);
-  window.addEventListener("pointerup", onPointerUp);
-  document.addEventListener("mouseleave", onMouseLeave);
-
-  let tick = 0;
-  let rafId: number;
-
-  function loop() {
-    rafId = requestAnimationFrame(loop);
-    tick++;
-    if (tick % 60 === 0) rgb = accentRgb();
-
-    mouse.x += (mouse.tx - mouse.x) * 0.12;
-    mouse.y += (mouse.ty - mouse.y) * 0.12;
-    mouse.power += (mouse.tpower - mouse.power) * 0.06;
-
-    frame();
-  }
-  loop();
 
   return () => {
-    cancelAnimationFrame(rafId);
-    window.removeEventListener("resize", resize);
     window.removeEventListener("pointermove", move);
     window.removeEventListener("touchmove", move);
-    window.removeEventListener("pointerdown", onPointerDown);
-    window.removeEventListener("pointerup", onPointerUp);
-    document.removeEventListener("mouseleave", onMouseLeave);
   };
 }
 
 export default function GridBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fallbackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const fallback = fallbackRef.current;
+    if (!canvas || !fallback) return;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const debugMode = new URLSearchParams(window.location.search).get("grid-debug") === "1";
@@ -488,9 +326,14 @@ export default function GridBackground() {
     const webglCleanup = setupWebGL(canvas, debugMode, reducedMotion);
     if (webglCleanup) return webglCleanup;
 
-    if (debugMode) console.log("grid-debug: WebGL2 unavailable, falling back to Canvas 2D");
-    return setupCanvas2D(canvas, debugMode, reducedMotion);
+    canvas.style.display = "none";
+    return setupCssFallback(fallback, debugMode, reducedMotion);
   }, []);
 
-  return <canvas ref={canvasRef} className="bg-grid-canvas" aria-hidden="true" />;
+  return (
+    <>
+      <canvas ref={canvasRef} className="bg-grid-canvas" aria-hidden="true" />
+      <div ref={fallbackRef} className="bg-grid-css-fallback" aria-hidden="true" />
+    </>
+  );
 }
