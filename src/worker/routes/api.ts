@@ -142,4 +142,23 @@ api.post("/message/:id/reveal", rateLimit("RATE_LIMITER_REVEAL"), async (c) => {
   return c.json({ data: toBase64Url(message.data) });
 });
 
+// Lets a sender revoke a secret before it's read. Gated only by knowledge
+// of the id, same as the existence check above -- ids carry the same
+// unguessable entropy the reveal PIN already relies on, and a sender who
+// only knows the id (no PIN) can already destroy a message today by
+// exhausting PIN_ATTEMPTS, so this doesn't introduce a new class of risk.
+api.delete("/message/:id", rateLimit("RATE_LIMITER_REVEAL"), async (c) => {
+  const { id } = c.req.param();
+  const store = new D1Store(c.env.DB);
+
+  const message = await store.load(id);
+  if (!message) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  await store.remove(id);
+
+  return c.body(null, 204);
+});
+
 export default api;
