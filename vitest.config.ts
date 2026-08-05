@@ -6,6 +6,12 @@ const migrations = await readD1Migrations(path.join(__dirname, "migrations"));
 
 export default defineConfig({
   test: {
+    // Without this, Vitest's default glob also matches e2e/*.spec.ts and
+    // tries to run the Playwright suite inside the Workers pool -- which
+    // has no real DOM/Node module resolution for playwright-core's own
+    // dependencies and fails outright. e2e/ is exercised by `npm run
+    // test:e2e` (Playwright itself), not by Vitest.
+    include: ["test/**/*.test.ts"],
     setupFiles: ["./test/apply-migrations.ts"],
   },
   plugins: [
