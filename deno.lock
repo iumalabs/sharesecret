@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:@axe-core/playwright@^4.12.1": "4.12.1_playwright-core@1.62.1",
     "npm:@cloudflare/vite-plugin@^1.50.0": "1.50.0_vite@7.3.6__@types+node@24.13.3_wrangler@4.118.0_@types+node@24.13.3",
+    "npm:@cloudflare/vitest-pool-workers@*": "0.20.1_@vitest+runner@4.1.10_@vitest+snapshot@4.1.10_vitest@4.1.10__@types+node@24.13.3__vite@7.3.6___@types+node@24.13.3_@types+node@24.13.3_vite@7.3.6__@types+node@24.13.3",
     "npm:@cloudflare/vitest-pool-workers@~0.20.1": "0.20.1_@vitest+runner@4.1.10_@vitest+snapshot@4.1.10_vitest@4.1.10__@types+node@24.13.3__vite@7.3.6___@types+node@24.13.3_@types+node@24.13.3_vite@7.3.6__@types+node@24.13.3",
     "npm:@eslint/js@^9.38.0": "9.39.5",
     "npm:@playwright/test@^1.62.1": "1.62.1",
@@ -2136,6 +2137,13 @@
       "npm:vite@^7.1.12",
       "npm:vitest@^4.1.10",
       "npm:wrangler@^4.118.0"
-    ]
+    ],
+    "members": {
+      "src/worker": {
+        "dependencies": [
+          "npm:@cloudflare/vitest-pool-workers@*"
+        ]
+      }
+    }
   }
 }
