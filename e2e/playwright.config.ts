@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 5183;
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: ".",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -37,6 +37,8 @@ export default defineConfig({
   ],
   webServer: {
     command: `deno task dev --port ${PORT} --strictPort`,
+    // deno.json lives at the repo root, one level up from this config.
+    cwd: "..",
     url: `http://localhost:${PORT}/api/v1/ping`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["../../worker-configuration.d.ts", "npm:@cloudflare/vitest-pool-workers/types"]
+  }
+}

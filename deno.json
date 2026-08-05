@@ -37,14 +37,15 @@
     "lint:fix": "deno run -A npm:eslint . --fix",
     "format": "deno run -A npm:prettier --write .",
     "format:check": "deno run -A npm:prettier --check .",
-    "typecheck": "deno run -A npm:typescript/tsc --noEmit -p tsconfig.worker.json && deno run -A npm:typescript/tsc --noEmit -p tsconfig.app.json",
+    "typecheck": "DENO_COMPAT=1 deno check src/worker/**/*.ts src/shared/**/*.ts && DENO_COMPAT=1 deno check src/react-app/**/*.ts src/react-app/**/*.tsx",
     "test": "deno run -A npm:vitest run",
     "test:watch": "deno run -A npm:vitest",
-    "test:e2e": "deno run -A npm:playwright test",
-    "test:e2e:ui": "deno run -A npm:playwright test --ui",
+    "test:e2e": "deno run -A npm:playwright test --config e2e/playwright.config.ts",
+    "test:e2e:ui": "deno run -A npm:playwright test --config e2e/playwright.config.ts --ui",
     "db:migrate:local": "deno run -A npm:wrangler d1 migrations apply sharesecret-db --local",
     "db:migrate:remote": "deno run -A npm:wrangler d1 migrations apply sharesecret-db --remote",
     "gen-dev-vars": "deno run --allow-read --allow-write scripts/gen-dev-vars.ts"
   },
-  "allowScripts": ["npm:workerd"]
+  "allowScripts": ["npm:workerd"],
+  "workspace": ["src/worker", "src/react-app"]
 }

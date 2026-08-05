@@ -39,12 +39,16 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # Deliberately NOT caching ~/.cache/deno here (unlike the other jobs):
+      # `deno check`'s own graph cache was observed, during development, to
+      # reuse a stale "already validated" result for a file across runs with
+      # DIFFERENT effective compilerOptions -- a false-positive risk that's
+      # exactly wrong for a security-relevant CI gate. node_modules alone
+      # (deterministic from deno.lock) is safe to cache for speed.
       - uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/deno
-            node_modules
-          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ hashFiles('deno.lock') }}
       - run: deno install
       - run: deno task cf-typegen
       - run: deno task typecheck
