@@ -55,7 +55,7 @@ void main() {
 
   float veil = clamp(1.0 - max(0.0, p.y - u_res.y * 0.38) / (u_res.y * 1.25), 0.0, 1.0);
 
-  float a = clamp((line * (0.15 + f * 0.7) + node * 0.95) * veil + f * f * 0.1, 0.0, 1.0);
+  float a = clamp((line * (0.1 + f * 0.7) + node * 0.95) * veil + f * f * 0.1, 0.0, 1.0);
   vec3 c = u_col * clamp(1.0 + f * 0.6, 0.0, 2.0);
   outColor = vec4(c * a, a); // premultiplied
 }`;
@@ -230,7 +230,7 @@ function setupCssFallback(host: HTMLDivElement, reducedMotion: boolean): () => v
   const color = "var(--accent, #a78bfa)";
   host.style.backgroundImage = `repeating-linear-gradient(90deg, ${color} 0 1px, transparent 1px ${step}), ` +
     `repeating-linear-gradient(0deg, ${color} 0 1px, transparent 1px ${step})`;
-  host.style.opacity = "0.16";
+  host.style.opacity = "0.11";
   host.style.setProperty("--gx", "50%");
   host.style.setProperty("--gy", "30%");
   const mask = "radial-gradient(320px at var(--gx,50%) var(--gy,30%), #000, rgba(0,0,0,.35) 70%), " +
