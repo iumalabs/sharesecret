@@ -34,8 +34,13 @@ export default function RevealPage({ id }: { id: string }) {
       .then(setKey)
       .catch(() => setStatus({ kind: "missing-key" }));
 
+    // These two requests race independently. If the key already failed to
+    // import, that's a terminal client-side error -- don't let this later
+    // network response silently overwrite it with a functional-looking but
+    // dead-end PIN screen (the `key` state would still be null, so "Reveal
+    // secret" would stay permanently disabled with no explanation).
     checkMessage(id).then((res) => {
-      setStatus(res.ok ? { kind: "ready" } : { kind: "not-found" });
+      setStatus((prev) => (prev.kind === "missing-key" ? prev : res.ok ? { kind: "ready" } : { kind: "not-found" }));
     });
   }, [id]);
 
