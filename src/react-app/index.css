@@ -421,14 +421,22 @@ button {
 }
 
 .btn-secondary {
+  display: inline-block;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
   padding: 13px 16px;
   border-radius: 9px;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-secondary.block {
@@ -790,4 +798,90 @@ main {
 .threat-list > div {
   display: flex;
   gap: 10px;
+}
+
+/* -- vault --------------------------------------------------------------- */
+
+.vault-counts {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.vault-counts strong {
+  color: var(--text);
+  font-size: 15px;
+  letter-spacing: normal;
+  margin-right: 5px;
+}
+
+.vault-empty {
+  text-align: center;
+}
+
+.vault-empty p {
+  color: var(--dim);
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+.vault-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.vault-item {
+  margin-top: 0;
+}
+
+.vault-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vault-item-id {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.vault-item-meta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.status-pill {
+  flex-shrink: 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--dim);
+}
+
+.status-pill--live {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.status-pill--read {
+  color: var(--text);
+}
+
+.status-pill--expired,
+.status-pill--revoked {
+  color: var(--danger);
+  border-color: var(--danger-border);
 }
