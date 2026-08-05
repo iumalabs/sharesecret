@@ -129,16 +129,13 @@ function VaultRow({
         <span className={`status-pill status-pill--${status}`}>{STATUS_LABEL[status]}</span>
       </div>
       <div className="vault-item-meta">Created {new Date(entry.createdAt).toLocaleString()}</div>
-      <div className="result-row">
-        <a href={`/s/${entry.id}`} className="btn-secondary">
-          Open
-        </a>
-        {status === "live" && (
+      {status === "live" && (
+        <div className="result-row">
           <button type="button" className="btn-secondary" onClick={onRevoke} disabled={revoking}>
             {revoking ? "Revoking…" : "Revoke"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
