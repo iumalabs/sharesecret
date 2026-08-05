@@ -523,7 +523,7 @@ button {
 .qr-frame {
   margin-top: 11px;
   padding: 14px;
-  background: #ffffff;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
 }

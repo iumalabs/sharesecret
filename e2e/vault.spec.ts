@@ -100,34 +100,25 @@ test.describe("Vault: revoke", () => {
   });
 });
 
-test.describe("Vault: 'Open' is broken for every status (GH #42)", () => {
-  // Root cause: VaultEntry only ever stores { id, createdAt, expiresAt,
-  // revoked } (see lib/vault.ts) -- the decryption key deliberately never
-  // enters localStorage, so there is no key anywhere to build a working
-  // /s/:id#key link from Vault data alone. VaultPage.tsx's "Open" link is
-  // just `href={`/s/${entry.id}`}`, with no fragment -- RevealPage treats
-  // that as a missing key ("Incomplete link") before it even asks the
-  // server about the id, so this fires unconditionally, for every status.
-  test("clicking Open on a live entry lands on 'Incomplete link', not the reveal flow", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #42 -- Vault's Open link never includes the decryption key fragment");
-
+test.describe("Vault: no 'Open' affordance (GH #42)", () => {
+  // #42: VaultEntry only ever stores { id, createdAt, expiresAt, revoked }
+  // (see lib/vault.ts) -- the decryption key deliberately never enters
+  // localStorage, so there is no key anywhere to build a working
+  // /s/:id#key link from Vault data alone, for any entry, ever. Fixed by
+  // removing the "Open" affordance rather than faking a link (dead-end
+  // "Incomplete link" every time) or reversing the zero-knowledge
+  // guarantee by storing the key locally.
+  test("no Open link renders for a live entry", async ({ page, createSecret }) => {
     const { id } = await createSecret();
     await page.goto("/vault");
     const row = page.locator(".vault-item", { hasText: id });
     await expect(row.getByText("Live", { exact: true })).toBeVisible({ timeout: STATUS_TIMEOUT });
 
-    await row.getByRole("link", { name: "Open" }).click();
-    // What should happen once #42 is fixed: the PIN entry screen.
-    await expect(page.getByRole("heading", { name: "Someone left you a sealed note" })).toBeVisible();
+    await expect(row.getByRole("link", { name: "Open" })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: "Revoke" })).toBeVisible();
   });
 
-  // Unlike the test above, this one isn't wrapped in test.fail(): it
-  // confirms a currently-*true* fact (revoked entries fail identically to
-  // live ones), not a currently-false desired outcome, so it's a normal
-  // assertion, not a documented-bug regression trap. It'll need a look once
-  // #42 actually lands, since a fix might reasonably give revoked entries
-  // different treatment than live ones.
-  test("clicking Open on a revoked entry also lands on 'Incomplete link' -- same root cause, not status-specific", async ({ page, createSecret }) => {
+  test("no Open link renders for a revoked entry", async ({ page, createSecret }) => {
     const { id } = await createSecret();
     await page.goto("/vault");
     const row = page.locator(".vault-item", { hasText: id });
@@ -135,14 +126,6 @@ test.describe("Vault: 'Open' is broken for every status (GH #42)", () => {
     await row.getByRole("button", { name: "Revoke" }).click();
     await expect(row.getByText("Revoked by you")).toBeVisible();
 
-    await row.getByRole("link", { name: "Open" }).click();
-    // Not a meaningful expectation of *correct* behavior (a revoked secret
-    // arguably shouldn't "open" at all) -- just documents that today's
-    // failure is identical to the live case (same root cause, not two
-    // separate bugs). A *positive* wait here, not a negative one: asserting
-    // "not visible" is trivially true the instant before the client-side
-    // navigation lands, which made this flaky (it could pass for the wrong
-    // reason -- checked too early -- as easily as for the right one).
-    await expect(page.getByRole("heading", { name: "Incomplete link" })).toBeVisible();
+    await expect(row.getByRole("link", { name: "Open" })).toHaveCount(0);
   });
 });
