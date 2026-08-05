@@ -79,7 +79,7 @@ export default function CreatePage() {
       <div className="hero">
         <div className="badge">
           <span className="badge-dot" aria-hidden="true" />
-          AES-128-GCM · encrypted in this tab
+          AES-256-GCM · encrypted in this tab
         </div>
         <h1>
           Say it once.
