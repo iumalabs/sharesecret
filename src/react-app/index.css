@@ -881,7 +881,7 @@ main {
 }
 
 .status-pill--read {
-  color: var(--text);
+  color: var(--dim);
 }
 
 .status-pill--expired,

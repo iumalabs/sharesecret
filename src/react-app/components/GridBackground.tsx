@@ -140,8 +140,8 @@ function setupWebGL(canvas: HTMLCanvasElement, reducedMotion: boolean): (() => v
 
   function resize() {
     state.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
     canvas.width = Math.round(w * state.dpr);
     canvas.height = Math.round(h * state.dpr);
     gl!.viewport(0, 0, canvas.width, canvas.height);
@@ -151,6 +151,15 @@ function setupWebGL(canvas: HTMLCanvasElement, reducedMotion: boolean): (() => v
     gl!.uniform1f(uPull, PULL * state.dpr);
     gl!.uniform1f(uLw, state.dpr);
   }
+  // A plain `resize` listener only fires on a native window resize. If the
+  // canvas mounts before layout has settled (backgrounded tab, embedded
+  // webview, etc.) window.innerWidth/innerHeight can read 0 at that instant,
+  // leaving the canvas permanently 0x0 with nothing left to correct it.
+  // ResizeObserver instead reports the canvas's actual laid-out size and
+  // re-fires whenever that changes, matching the design mockup's own
+  // grid-webgl.js implementation.
+  const resizeObserver = new ResizeObserver(resize);
+  resizeObserver.observe(canvas);
   resize();
 
   let rgb = accentRgbFloat();
@@ -167,7 +176,7 @@ function setupWebGL(canvas: HTMLCanvasElement, reducedMotion: boolean): (() => v
     // Static resting-state frame only: no pointer at (-9999,-9999) means
     // the shader's warp/glow terms stay at zero.
     draw();
-    return () => {};
+    return () => resizeObserver.disconnect();
   }
 
   function move(e: PointerEvent | TouchEvent) {
@@ -188,7 +197,6 @@ function setupWebGL(canvas: HTMLCanvasElement, reducedMotion: boolean): (() => v
     mouse.tpower = 0;
   }
 
-  window.addEventListener("resize", resize);
   window.addEventListener("pointermove", move, { passive: true });
   window.addEventListener("touchmove", move, { passive: true });
   window.addEventListener("pointerdown", onPointerDown);
@@ -213,7 +221,7 @@ function setupWebGL(canvas: HTMLCanvasElement, reducedMotion: boolean): (() => v
 
   return () => {
     cancelAnimationFrame(rafId);
-    window.removeEventListener("resize", resize);
+    resizeObserver.disconnect();
     window.removeEventListener("pointermove", move);
     window.removeEventListener("touchmove", move);
     window.removeEventListener("pointerdown", onPointerDown);
