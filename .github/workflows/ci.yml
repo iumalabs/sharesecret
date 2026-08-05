@@ -65,7 +65,23 @@ jobs:
       - run: npm run cf-typegen
       - run: cp .env.example .dev.vars && sed -i "s/^PIN_HASH_PEPPER=$/PIN_HASH_PEPPER=ci-only-pepper-$(openssl rand -hex 16)/" .dev.vars
       - run: npm run db:migrate:local
-      - run: npx playwright install --with-deps chromium
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      # Browser binaries restore from cache, but the OS packages they need to
+      # actually run (libnss3, libatk, etc.) are installed onto the runner's
+      # filesystem, not this cached directory -- every job starts on a fresh
+      # VM, so those need reinstalling regardless of the binary cache hit.
+      # `install-deps` (no `--with-deps` binary download) is the fast path.
+      - name: Install Playwright browser (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Install Playwright OS dependencies (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
