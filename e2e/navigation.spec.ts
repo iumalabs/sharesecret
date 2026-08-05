@@ -61,6 +61,19 @@ test.describe("How It Works page", () => {
   });
 });
 
+test.describe("footer", () => {
+  test("is present with a link to the source repo", async ({ page }) => {
+    await page.goto("/");
+    const footer = page.locator("footer");
+    await expect(footer).toBeVisible();
+    await expect(footer.getByRole("link", { name: "Source" })).toHaveAttribute(
+      "href",
+      "https://github.com/maksimyugai/sharesecret",
+    );
+    await expect(footer.getByRole("link", { name: "Protocol" })).toHaveAttribute("href", "/how");
+  });
+});
+
 test.describe("unknown routes", () => {
   test("an unrecognized path falls back to the compose home page (SPA default route)", async ({ page }) => {
     await page.goto("/this-route-does-not-exist");

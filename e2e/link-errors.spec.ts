@@ -25,23 +25,19 @@ test.describe("broken / incomplete links", () => {
     "a syntactically invalid key (wrong length/charset) stays on 'incomplete link' " +
       "instead of racing into a dead-end PIN screen",
     async ({ page, createSecret }) => {
-      // Known bug: https://github.com/maksimyugai/sharesecret/issues/17
-      // `importKey()` rejects fast and sets "missing-key", but the sibling
-      // `checkMessage(id)` network call resolves slightly later and
-      // unconditionally overwrites status to "ready" (since the id is real),
-      // landing the recipient on a PIN form whose submit button can never be
-      // enabled (`key` was never set). Reproduces on ~every run once the id
-      // genuinely exists server-side, not just occasionally -- this isn't
-      // flakiness in the test, it's the app's real (buggy) behavior.
-      test.fail(true, "tracked by #17 -- remove test.fail() once the race in RevealPage's useEffect is fixed");
-
+      // Regression test for https://github.com/maksimyugai/sharesecret/issues/17
+      // (fixed by #19): `importKey()` used to reject fast and set
+      // "missing-key", while the sibling `checkMessage(id)` network call
+      // resolved slightly later and unconditionally overwrote status to
+      // "ready", landing the recipient on a dead-end PIN form. Was previously
+      // marked test.fail() while the bug was open; now a plain assertion.
       const { id } = await createSecret();
       // "not-a-real-key" is not decodable into a usable AES key length.
       await page.goto(`/s/${id}#not-a-real-key`);
 
       await expect(page.getByRole("heading", { name: "Incomplete link" })).toBeVisible();
-      // Give checkMessage()'s in-flight fetch time to resolve and (today)
-      // clobber the status -- this is the assertion that currently fails.
+      // Give checkMessage()'s in-flight fetch plenty of time to resolve and
+      // confirm it no longer clobbers the status.
       await page.waitForTimeout(1500);
       await expect(page.getByRole("heading", { name: "Incomplete link" })).toBeVisible();
     },

@@ -29,8 +29,8 @@ npm run dev
 | `npm run format` / `format:check` | Prettier                                                                        |
 | `npm run typecheck`               | `tsc --noEmit` for both the Worker and the React app                            |
 | `npm test`                        | Vitest (`@cloudflare/vitest-pool-workers`, runs against a real Workers runtime) |
-| `npm run test:e2e`                | Playwright end-to-end suite (`e2e/`), against a real local dev server          |
-| `npm run test:e2e:ui`             | Same, in Playwright's interactive UI mode                                      |
+| `npm run test:e2e`                | Playwright end-to-end suite (`e2e/`), against a real local dev server           |
+| `npm run test:e2e:ui`             | Same, in Playwright's interactive UI mode                                       |
 | `npm run cf-typegen`              | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` bindings           |
 
 ## End-to-end tests

@@ -5,7 +5,7 @@ test.describe("compose / create secret", () => {
   test("shows the homepage hero and empty form", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByText("AES-128-GCM", { exact: false })).toBeVisible();
+    await expect(page.getByText("AES-256-GCM", { exact: false })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Say it once\./ })).toBeVisible();
     await expect(page.getByPlaceholder("Type the thing you shouldn't send over chat…")).toHaveValue("");
     await expect(page.getByText("0 chars")).toBeVisible();

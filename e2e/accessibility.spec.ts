@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect, waitForFonts } from "./fixtures";
+import { PIN_ATTEMPTS } from "../src/shared/constants";
 
 // axe's color-contrast check samples actual rendered (anti-aliased) pixels,
 // which for small JetBrains Mono text on the --dim token measures ~4.36:1 --
@@ -43,48 +44,56 @@ test.describe("automated a11y scan (axe-core)", () => {
   });
 
   // PIN entry, incomplete-link, not-found, and destroyed all share
-  // RevealPage's `.status-page` / hero markup, which headlines with an <h2>
-  // and never renders an <h1> anywhere on the page -- axe's
-  // page-has-heading-one rule (moderate). Tracked as
-  // https://github.com/maksimyugai/sharesecret/issues/18; flip these back to
-  // plain assertions (drop test.fail()) once RevealPage.tsx is fixed.
+  // RevealPage's `.status-page` / hero markup. Each of these states only
+  // renders after an async checkMessage()/importKey() resolves (the page
+  // renders nothing while `status.kind === "loading"`), so every scan here
+  // first waits for the expected heading -- scanning too early caught axe
+  // mid-loading-flash (no heading at all yet) and produced a misleading
+  // page-has-heading-one violation unrelated to the real, now-fixed bug
+  // (https://github.com/maksimyugai/sharesecret/issues/18, fixed by #20).
   test("PIN entry screen has no detectable a11y violations", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #18 -- RevealPage's PIN hero has no <h1>");
     const { link } = await createSecret();
     await page.goto(link);
+    await expect(page.getByRole("heading", { name: "Someone left you a sealed note" })).toBeVisible();
     const results = await scan(page);
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 
   test("incomplete-link screen has no detectable a11y violations", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #18 -- RevealPage's .status-page has no <h1>");
     const { id } = await createSecret();
     await page.goto(`/s/${id}`);
+    await expect(page.getByRole("heading", { name: "Incomplete link" })).toBeVisible();
     const results = await scan(page);
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 
   test("secret-not-found screen has no detectable a11y violations", async ({ page }) => {
-    test.fail(true, "tracked by #18 -- RevealPage's .status-page has no <h1>");
     await page.goto("/s/doesnotexist12#AAAAAAAAAAAAAAAAAAAAAA");
+    await expect(page.getByRole("heading", { name: "Secret not found" })).toBeVisible();
     const results = await scan(page);
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 
   test("secret-destroyed screen has no detectable a11y violations", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #18 -- RevealPage's .status-page has no <h1>");
     const { link } = await createSecret();
     await page.goto(link);
     const pinInput = page.getByLabel("PIN");
     const submit = page.getByRole("button", { name: "Reveal secret" });
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < PIN_ATTEMPTS - 1; i++) {
       await pinInput.fill("00000");
-      // Under heavy parallel load the disabled->enabled re-render can lag
-      // fill(); wait for it explicitly rather than relying on click()'s
-      // built-in actionability wait, which has flaked here under contention.
       await expect(submit).toBeEnabled();
       await submit.click();
+      // Wait for *this* attempt's response to be fully processed (the error
+      // clears the PIN field via setPin("")) before looping to the next
+      // fill() -- otherwise a fast loop can fill() the next attempt before
+      // the previous response lands, which then clobbers it back to empty
+      // and leaves the submit button stuck disabled.
+      await expect(page.getByRole("alert")).toBeVisible();
     }
+    // Final wrong attempt destroys the secret outright.
+    await pinInput.fill("00000");
+    await expect(submit).toBeEnabled();
+    await submit.click();
     await expect(page.getByRole("heading", { name: "Secret destroyed" })).toBeVisible();
     const results = await scan(page);
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
