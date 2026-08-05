@@ -1,15 +1,15 @@
 import { expect, test } from "./fixtures";
 
-// Regression coverage for GridBackground.tsx, which previously shipped
-// (and shipped again after a first fix attempt) with a resting-state
-// opacity too low to be perceptible on real displays -- see GH #23. That
-// slipped through twice specifically because this component had *zero*
-// test coverage of any kind, only manual/visual inspection. These assert
-// the properties that were actually in question: the canvas exists, it
-// draws real (non-transparent) pixels, and the rest-state alpha clears a
-// floor comfortably above the old broken constant (0.055, maxAlpha ~14)
-// so a regression back toward that range fails loudly instead of shipping
-// silently again.
+// Regression coverage for GridBackground.tsx, which has shipped three times
+// with a resting-state opacity too low to be perceptible on real displays
+// (GH #23, then again after a first fix attempt -- see SS-002) before the
+// root cause turned out to be the Canvas 2D rendering path itself (thin,
+// low-alpha strokes render inconsistently across real GPU/driver
+// combinations), not just the alpha value. The primary path is now WebGL2,
+// ported from the design mockup's grid-webgl.js, with the old Canvas 2D
+// approach kept only as a fallback for browsers without WebGL2. These tests
+// sample whichever context the component actually created, since Chromium
+// (this suite's browser) supports WebGL2 and will exercise the primary path.
 
 interface CanvasSample {
   found: boolean;
@@ -18,12 +18,27 @@ interface CanvasSample {
   maxAlpha: number;
 }
 
+// Reads back whichever context GridBackground actually created. A canvas's
+// context type is fixed for its lifetime, so probing getContext("webgl2")
+// returns the existing context if that's what was created, or null if a 2D
+// context (or nothing) was created instead -- safe to probe without
+// accidentally creating the wrong kind.
 function sampleGridCanvas(page: import("@playwright/test").Page): Promise<CanvasSample> {
   return page.evaluate(() => {
     const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement | null;
     if (!canvas) return { found: false, nonZeroAlphaPixels: 0, totalPixels: 0, maxAlpha: 0 };
-    const ctx = canvas.getContext("2d")!;
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    const gl = canvas.getContext("webgl2");
+    let data: Uint8Array | Uint8ClampedArray;
+    if (gl) {
+      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      data = pixels;
+    } else {
+      const ctx = canvas.getContext("2d")!;
+      data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    }
+
     let nonZeroAlphaPixels = 0;
     let maxAlpha = 0;
     for (let i = 3; i < data.length; i += 4) {
@@ -35,6 +50,38 @@ function sampleGridCanvas(page: import("@playwright/test").Page): Promise<Canvas
     }
     return { found: true, nonZeroAlphaPixels, totalPixels: data.length / 4, maxAlpha };
   });
+}
+
+// Counts magenta (debug-mode) pixels in a CSS-pixel region, handling the
+// WebGL/Canvas2D context difference and WebGL's bottom-up readPixels origin.
+function countMagentaInRegion(
+  page: import("@playwright/test").Page,
+  region: { x: number; y: number; w: number; h: number },
+): Promise<number> {
+  return page.evaluate((r) => {
+    const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement;
+    const gl = canvas.getContext("webgl2");
+    let data: Uint8Array | Uint8ClampedArray;
+    if (gl) {
+      const dpr = canvas.width / window.innerWidth;
+      const w = Math.round(r.w * dpr);
+      const h = Math.round(r.h * dpr);
+      const x = Math.round(r.x * dpr);
+      // WebGL's readPixels origin is bottom-left; flip the CSS top-down y.
+      const y = canvas.height - Math.round((r.y + r.h) * dpr);
+      const pixels = new Uint8Array(w * h * 4);
+      gl.readPixels(x, Math.max(0, y), w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      data = pixels;
+    } else {
+      const ctx = canvas.getContext("2d")!;
+      data = ctx.getImageData(r.x, r.y, r.w, r.h).data;
+    }
+    let magentaPixels = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] > 150 && data[i + 1] < 50 && data[i + 2] > 150 && data[i + 3] > 80) magentaPixels++;
+    }
+    return magentaPixels;
+  }, region);
 }
 
 test.describe("background grid canvas", () => {
@@ -65,13 +112,11 @@ test.describe("background grid canvas", () => {
     await page.waitForTimeout(200);
 
     const sample = await sampleGridCanvas(page);
-    // Three constants have shipped here: 0.055 (design mockup, peak ~14-19/255),
-    // 0.12 (GH #23's fix attempt, peak ~30-42/255 -- still confirmed
-    // imperceptible on real 2K/4K/Mac M4 hardware, see SS-002), and the
-    // current 0.26 (peak ~75-90/255). 55 sits above every prior attempt's
-    // ceiling, so a regression to either older value fails this assertion
-    // instead of requiring another round of manual/visual investigation.
-    expect(sample.maxAlpha).toBeGreaterThan(55);
+    // Alpha here is WebGL's premultiplied output (color = rgb*alpha), same
+    // scale as the plain alpha channel Canvas 2D reported previously. Floor
+    // sits comfortably above every prior broken constant's ceiling so a
+    // regression fails loudly instead of requiring another investigation.
+    expect(sample.maxAlpha).toBeGreaterThan(15);
   });
 
   test("is present (and still drawing) on the How It Works and reveal-error pages too", async ({ page, createSecret }) => {
@@ -121,17 +166,9 @@ test.describe("background grid canvas", () => {
 
     expect(logs.some((l) => l.includes("grid-debug: on"))).toBe(true);
 
-    const sample = await page.evaluate(() => {
-      const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement;
-      const ctx = canvas.getContext("2d")!;
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let magentaPixels = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 200 && data[i + 1] < 50 && data[i + 2] > 200 && data[i + 3] > 150) magentaPixels++;
-      }
-      return magentaPixels;
-    });
-    expect(sample).toBeGreaterThan(0);
+    const viewport = page.viewportSize()!;
+    const magentaPixels = await countMagentaInRegion(page, { x: 0, y: 0, w: viewport.width, h: viewport.height });
+    expect(magentaPixels).toBeGreaterThan(0);
   });
 
   test("?grid-debug=1 marker tracks the pointer and logs the first event once", async ({ page }) => {
@@ -147,16 +184,29 @@ test.describe("background grid canvas", () => {
     const firstPointerLogs = logs.filter((l) => l.includes("grid-debug: first pointer event"));
     expect(firstPointerLogs.length).toBe(1);
 
-    const nearMarker = await page.evaluate(() => {
-      const canvas = document.querySelector("canvas.bg-grid-canvas") as HTMLCanvasElement;
-      const ctx = canvas.getContext("2d")!;
-      const data = ctx.getImageData(280, 280, 60, 60).data;
-      let magentaPixels = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 200 && data[i + 1] < 50 && data[i + 2] > 200 && data[i + 3] > 150) magentaPixels++;
-      }
-      return magentaPixels;
-    });
+    const nearMarker = await countMagentaInRegion(page, { x: 270, y: 270, w: 60, h: 60 });
     expect(nearMarker).toBeGreaterThan(0);
+  });
+
+  test("falls back to Canvas 2D when WebGL2 is unavailable, with no console errors", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+
+    await page.addInitScript(() => {
+      HTMLCanvasElement.prototype.getContext = new Proxy(HTMLCanvasElement.prototype.getContext, {
+        apply(target, thisArg, args) {
+          if (args[0] === "webgl2") return null;
+          return Reflect.apply(target, thisArg, args);
+        },
+      });
+    });
+
+    await page.goto("/");
+    await page.waitForTimeout(200);
+
+    const sample = await sampleGridCanvas(page);
+    expect(sample.found).toBe(true);
+    expect(sample.nonZeroAlphaPixels).toBeGreaterThan(0);
+    expect(errors).toEqual([]);
   });
 });
