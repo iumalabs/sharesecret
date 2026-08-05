@@ -429,6 +429,13 @@ button {
   margin-top: 16px;
 }
 
+.btn-icon-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: center;
+}
+
 .btn-secondary:hover {
   border-color: var(--accent);
   color: var(--accent);
