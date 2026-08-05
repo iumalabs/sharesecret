@@ -1,5 +1,5 @@
 /**
- * Zero-knowledge client-side crypto: AES-128-GCM via Web Crypto. The key is
+ * Zero-knowledge client-side crypto: AES-256-GCM via Web Crypto. The key is
  * generated in the browser, never sent to the server, and lives only in the
  * URL fragment (`#key`) -- fragments are never included in HTTP requests, so
  * the server (and anything logging its requests) never sees it.
@@ -31,7 +31,7 @@ function fromBase64Url(value: string): Uint8Array {
 }
 
 export async function generateKey(): Promise<CryptoKey> {
-  return crypto.subtle.generateKey({ name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"]);
+  return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
 
 export async function exportKey(key: CryptoKey): Promise<string> {

@@ -11,7 +11,7 @@ gone. The server never sees the plaintext or the decryption key.
 
 ## How it works (planned)
 
-1. Your browser generates a random AES-128-GCM key and encrypts your message
+1. Your browser generates a random AES-256-GCM key and encrypts your message
    or file locally (Web Crypto API).
 2. The ciphertext (plus a PIN hash) is sent to the Worker and stored in D1
    with an expiry.
