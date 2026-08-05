@@ -1,5 +1,6 @@
 import { SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { MAX_MESSAGE_BYTES } from "../src/shared/constants";
 
 const BASE = "https://example.com/api/v1";
 
@@ -81,6 +82,72 @@ describe("create validation", () => {
   it("rejects missing data", async () => {
     const res = await createMessage({ data: "" });
     expect(res.status).toBe(400);
+  });
+
+  it("rejects data over the MAX_MESSAGE_BYTES limit", async () => {
+    const res = await createMessage({ data: "a".repeat(MAX_MESSAGE_BYTES + 1) });
+    expect(res.status).toBe(400);
+    expect(await res.json<{ error: string }>()).toMatchObject({ error: expect.stringContaining("byte limit") });
+  });
+
+  it("accepts data right at the MAX_MESSAGE_BYTES limit", async () => {
+    // "a" isn't valid base64url alone, but only the *length* check is under
+    // test here -- pad with valid base64url chars up to exactly the limit.
+    const data = "a".repeat(MAX_MESSAGE_BYTES - 4) + "AAAA";
+    const res = await createMessage({ data });
+    expect(res.status).toBe(201);
+  });
+
+  it("rejects data that isn't valid base64url", async () => {
+    const res = await createMessage({ data: "not-valid-base64!!!" });
+    expect(res.status).toBe(400);
+    expect(await res.json<{ error: string }>()).toMatchObject({ error: expect.stringContaining("base64url") });
+  });
+
+  it("rejects a malformed JSON body", async () => {
+    const res = await SELF.fetch(`${BASE}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("reveal validation", () => {
+  // The other describe blocks in this file all hit RATE_LIMITER_REVEAL
+  // under the same "unknown" key (no CF-Connecting-IP set), which is
+  // already close to its 10-per-60s budget by the time these run. Giving
+  // these their own synthetic IP keeps them independent of the rest of the
+  // file's traffic -- same pattern as e2e/fixtures.ts.
+  function revealAs(ip: string, id: string, pin: string) {
+    return SELF.fetch(`${BASE}/message/${id}/reveal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": ip },
+      body: JSON.stringify({ pin }),
+    });
+  }
+
+  it("rejects a malformed JSON body", async () => {
+    const { id } = await (await createMessage()).json<{ id: string }>();
+    const res = await SELF.fetch(`${BASE}/message/${id}/reveal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": "10.3.3.1" },
+      body: "{not json",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("treats a wrong-length PIN as an incorrect attempt, not a 400 -- and it still counts against the attempt budget", async () => {
+    const { id } = await (await createMessage()).json<{ id: string }>();
+
+    const res = await revealAs("10.3.3.2", id, "12");
+    expect(res.status).toBe(403);
+    expect(await res.json<{ attemptsRemaining: number }>()).toMatchObject({ attemptsRemaining: 2 });
+
+    // the real PIN still works afterwards -- one bad-length guess didn't destroy it
+    const ok = await revealAs("10.3.3.2", id, "12345");
+    expect(ok.status).toBe(200);
   });
 });
 
