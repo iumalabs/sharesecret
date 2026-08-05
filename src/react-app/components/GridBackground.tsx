@@ -12,6 +12,10 @@ import { useEffect, useRef } from "react";
 const STEP = 74; // grid spacing, css px
 const RADIUS = 300; // pointer influence radius
 const PULL = 26; // max node displacement toward the pointer
+// The design mockup's resting-state alpha (0.055) is imperceptible on real
+// displays (see GH #23) -- bumped here so the grid reads as a visible
+// texture at rest, not just during the pointer glow.
+const REST_ALPHA = 0.12;
 
 type Point = [x: number, y: number, glow: number];
 
@@ -83,7 +87,7 @@ export default function GridBackground() {
     function seg(p: Point, q: Point, col: string) {
       const glow = Math.max(p[2], q[2]);
       const fade = veil((p[1] + q[1]) / 2);
-      const alpha = (0.055 + glow * 0.5) * fade;
+      const alpha = (REST_ALPHA + glow * 0.5) * fade;
       if (alpha < 0.004) return;
       ctx!.strokeStyle = `rgba(${col},${alpha.toFixed(3)})`;
       ctx!.lineWidth = 0.8 + glow * 1.5;
