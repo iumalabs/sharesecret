@@ -14,7 +14,12 @@ export default function QrCode({ value, size = 160 }: QrCodeProps) {
     QRCode.toDataURL(value, {
       width: size,
       margin: 1,
-      color: { dark: "#0b0a1a", light: "#ffffff" },
+      // Dark modules on a dark background feels wrong for a QR code at
+      // first glance, but every other panel on this page is dark with a
+      // purple accent -- a stark white square here reads as unstyled, not
+      // intentional. The accent color still has plenty of luminance
+      // contrast against --bg to stay reliably scannable.
+      color: { dark: "#a78bfa", light: "#070615" },
     })
       .then((url) => {
         if (!cancelled) setDataUrl(url);
