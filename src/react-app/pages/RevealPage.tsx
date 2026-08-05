@@ -25,6 +25,11 @@ export default function RevealPage({ id }: { id: string }) {
   const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
+  const [remainingMs, setRemainingMs] = useState(AUTO_CLEAR_MS);
+
+  function clearRevealed() {
+    setStatus({ kind: "cleared" });
+  }
 
   useEffect(() => {
     const fragment = window.location.hash.slice(1);
@@ -81,15 +86,27 @@ export default function RevealPage({ id }: { id: string }) {
   useEffect(() => {
     if (status.kind !== "revealed") return;
 
-    const clear = () => setStatus({ kind: "cleared" });
-    const timer = window.setTimeout(clear, AUTO_CLEAR_MS);
+    // Recomputed from a fixed deadline (not decremented) so the displayed
+    // countdown can't drift from AUTO_CLEAR_MS even if the interval is
+    // throttled by a backgrounded tab.
+    const deadline = Date.now() + AUTO_CLEAR_MS;
+    const tick = () => {
+      const left = deadline - Date.now();
+      if (left <= 0) {
+        clearRevealed();
+        return;
+      }
+      setRemainingMs(left);
+    };
+    tick();
+    const interval = window.setInterval(tick, 1000);
     const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") clear();
+      if (document.visibilityState === "hidden") clearRevealed();
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [status.kind]);
@@ -152,26 +169,51 @@ export default function RevealPage({ id }: { id: string }) {
   }
 
   if (status.kind === "revealed") {
+    const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    const countdown = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${
+      String(remainingSeconds % 60).padStart(2, "0")
+    }`;
+    const countdownPct = Math.max(0, Math.min(100, Math.round((remainingMs / AUTO_CLEAR_MS) * 100)));
+
     return (
       <>
-        <div className="badge">
-          <span className="badge-dot" aria-hidden="true" />
-          decrypted locally
+        <div className="reveal-head">
+          <div className="badge">
+            <span className="badge-dot" aria-hidden="true" />
+            decrypted locally
+          </div>
+          <div className="destruct-countdown">
+            <span className="destruct-dot" aria-hidden="true" />
+            Destruct in {countdown}
+          </div>
         </div>
+        <div className="countdown-bar" aria-hidden="true">
+          <div className="countdown-bar-fill" style={{ width: `${countdownPct}%` }} />
+        </div>
+
         <h1>Secret revealed</h1>
         <p className="lede left">
-          This secret has now been deleted and can't be viewed again -- copy it somewhere safe.
+          This secret has now been deleted and can't be viewed again -- copy it somewhere safe before the timer runs
+          out.
         </p>
         <div className="result-panel">
           <pre className="secret-body">{status.plaintext}</pre>
         </div>
-        <CopyButton
-          value={status.plaintext}
-          label="Copy content"
-          copiedLabel="✓ Copied to clipboard"
-          className="btn-secondary block"
-          icon
-        />
+        <div className="result-row">
+          <CopyButton
+            value={status.plaintext}
+            label="Copy content"
+            copiedLabel="✓ Copied to clipboard"
+            className="btn-secondary"
+            icon
+          />
+          <button type="button" className="btn-danger" onClick={clearRevealed}>
+            Burn it now
+          </button>
+        </div>
+        <p className="reveal-note">
+          Copy it somewhere safe before the timer ends -- this page is the only place this text exists.
+        </p>
       </>
     );
   }
