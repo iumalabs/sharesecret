@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { checkMessage, revealMessage } from "../lib/api";
 import { decryptText, importKey } from "../lib/crypto";
 import Logo from "../components/Logo";
+import CopyButton from "../components/CopyButton";
 
 type Status =
   | { kind: "loading" }
@@ -122,13 +123,13 @@ export default function RevealPage({ id }: { id: string }) {
         <div className="result-panel">
           <pre className="secret-body">{status.plaintext}</pre>
         </div>
-        <button
-          type="button"
+        <CopyButton
+          value={status.plaintext}
+          label="Copy content"
+          copiedLabel="✓ Copied to clipboard"
           className="btn-secondary block"
-          onClick={() => navigator.clipboard.writeText(status.plaintext)}
-        >
-          Copy secret
-        </button>
+          icon
+        />
       </>
     );
   }

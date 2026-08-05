@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createMessage, getParams, type Params } from "../lib/api";
 import { encryptText, exportKey, generateKey } from "../lib/crypto";
+import CopyButton from "../components/CopyButton";
 
 const EXPIRY_PRESETS = [
   { label: "15 min", seconds: 15 * 60 },
@@ -158,9 +159,7 @@ function CreatedResult({ result, onReset }: { result: CreatedSecret; onReset: ()
         </div>
         <div className="result-value">{result.link}</div>
         <div className="result-row">
-          <button type="button" className="btn-primary" onClick={() => navigator.clipboard.writeText(result.link)}>
-            Copy link
-          </button>
+          <CopyButton value={result.link} label="Copy link" className="btn-primary" />
         </div>
       </div>
 
@@ -170,9 +169,7 @@ function CreatedResult({ result, onReset }: { result: CreatedSecret; onReset: ()
         </div>
         <div className="result-value pin-value">{result.pin}</div>
         <div className="result-row">
-          <button type="button" className="btn-secondary" onClick={() => navigator.clipboard.writeText(result.pin)}>
-            Copy PIN
-          </button>
+          <CopyButton value={result.pin} label="Copy PIN" className="btn-secondary" />
         </div>
       </div>
 
