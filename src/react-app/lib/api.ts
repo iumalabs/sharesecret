@@ -55,3 +55,7 @@ export function revealMessage(id: string, pin: string): Promise<ApiResult<{ data
     body: JSON.stringify({ pin }),
   }).then((res) => parse<{ data: string }>(res));
 }
+
+export function revokeMessage(id: string): Promise<ApiResult<null>> {
+  return fetch(`/api/v1/message/${encodeURIComponent(id)}`, { method: "DELETE" }).then((res) => parse<null>(res));
+}

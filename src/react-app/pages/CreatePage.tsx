@@ -3,6 +3,7 @@ import { createMessage, getParams, type Params } from "../lib/api";
 import { encryptText, exportKey, generateKey } from "../lib/crypto";
 import CopyButton from "../components/CopyButton";
 import QrCode from "../components/QrCode";
+import { addVaultEntry } from "../lib/vault";
 
 const EXPIRY_PRESETS = [
   { label: "15 min", seconds: 15 * 60 },
@@ -60,6 +61,7 @@ export default function CreatePage() {
 
       const keyB64 = await exportKey(key);
       const link = `${window.location.origin}/s/${res.data.id}#${keyB64}`;
+      addVaultEntry({ id: res.data.id, createdAt: Date.now(), expiresAt: res.data.expiresAt, revoked: false });
       setResult({ link, pin });
       setMessage("");
     } catch {
