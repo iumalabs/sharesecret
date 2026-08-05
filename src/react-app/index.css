@@ -613,7 +613,7 @@ code {
 
 /* -- decorative background (grid + glow), purely cosmetic, behind everything -- */
 
-.bg-grid,
+.bg-grid-canvas,
 .bg-glow {
   position: fixed;
   inset: 0;
@@ -621,16 +621,11 @@ code {
   overflow: hidden;
 }
 
-.bg-grid {
+.bg-grid-canvas {
   z-index: -2;
-  --grid-line: color-mix(in srgb, var(--accent) 6%, transparent);
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 74px 74px;
-  /* Full width, fades out toward the bottom -- matches the mockup's canvas
-     grid, which dies out vertically rather than narrowing toward the edges. */
-  mask-image: linear-gradient(to bottom, black, transparent 65%);
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .bg-glow {

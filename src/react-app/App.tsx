@@ -2,6 +2,7 @@ import CreatePage from "./pages/CreatePage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import RevealPage from "./pages/RevealPage";
 import Logo from "./components/Logo";
+import GridBackground from "./components/GridBackground";
 
 function useRoute() {
   const path = window.location.pathname;
@@ -16,7 +17,7 @@ function App() {
 
   return (
     <>
-      <div className="bg-grid" aria-hidden="true" />
+      <GridBackground />
       <div className="bg-glow" aria-hidden="true" />
 
       <div className="shell">
