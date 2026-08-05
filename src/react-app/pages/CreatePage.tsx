@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createMessage, getParams, type Params } from "../lib/api";
 import { encryptText, exportKey, generateKey } from "../lib/crypto";
 import CopyButton from "../components/CopyButton";
+import QrCode from "../components/QrCode";
 
 const EXPIRY_PRESETS = [
   { label: "15 min", seconds: 15 * 60 },
@@ -171,6 +172,18 @@ function CreatedResult({ result, onReset }: { result: CreatedSecret; onReset: ()
         <div className="result-row">
           <CopyButton value={result.pin} label="Copy PIN" className="btn-secondary" />
         </div>
+      </div>
+
+      <div className="result-panel qr-panel">
+        <div className="card-label">
+          <span>Scan to open</span>
+        </div>
+        <QrCode value={result.link} />
+        <p className="qr-caption">
+          The QR carries the key.
+          <br />
+          Treat it like the secret itself.
+        </p>
       </div>
 
       <button type="button" className="btn-secondary block" onClick={onReset}>
