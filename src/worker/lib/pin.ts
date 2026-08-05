@@ -1,7 +1,14 @@
 import { fromBase64Url, toBase64Url } from "./base64url";
 
-// OWASP 2023 recommendation for PBKDF2-HMAC-SHA256.
-const ITERATIONS = 210_000;
+// workerd's crypto.subtle.deriveBits caps PBKDF2 at 100,000 iterations
+// (throws NotSupportedError above that -- confirmed in production, not
+// simulated by the Miniflare test/dev runtime, which is why this wasn't
+// caught by tests or `vite dev`). 100,000 is the max the platform allows;
+// PIN_HASH_PEPPER (a secret never stored in D1) is the compensating control
+// for the lower iteration count. The format is self-describing (iterations
+// are stored in the hash string itself), so raising this later if the
+// platform limit ever changes doesn't invalidate already-stored hashes.
+const ITERATIONS = 100_000;
 const HASH = "SHA-256";
 const KEY_LENGTH_BITS = 256;
 const SALT_BYTES = 16;
