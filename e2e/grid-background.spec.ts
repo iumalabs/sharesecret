@@ -97,7 +97,9 @@ test.describe("background grid canvas", () => {
       const cs = getComputedStyle(el);
       return { position: cs.position, zIndex: cs.zIndex, display: cs.display };
     });
-    expect(style).toMatchObject({ position: "fixed", zIndex: "-2", display: "block" });
+    // z-index: 0, not negative -- see the comment in index.css on why negative
+    // z-index was dropped (it failed to composite on some real hardware).
+    expect(style).toMatchObject({ position: "fixed", zIndex: "0", display: "block" });
   });
 
   test("draws real, visible pixels at rest -- not just a blank/transparent canvas", async ({ page }) => {
