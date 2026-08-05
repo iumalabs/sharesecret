@@ -18,59 +18,79 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task lint
+      - run: deno task format:check
 
   typecheck:
     name: typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run cf-typegen
-      - run: npm run typecheck
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task cf-typegen
+      - run: deno task typecheck
 
   test:
     name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run cf-typegen
-      - run: npm test
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task cf-typegen
+      - run: deno task test
 
   e2e:
     name: e2e
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run cf-typegen
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task cf-typegen
       - run: cp .env.example .dev.vars && sed -i "s/^PIN_HASH_PEPPER=$/PIN_HASH_PEPPER=ci-only-pepper-$(openssl rand -hex 16)/" .dev.vars
-      - run: npm run db:migrate:local
+      - run: deno task db:migrate:local
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('deno.lock') }}
       # Browser binaries restore from cache, but the OS packages they need to
       # actually run (libnss3, libatk, etc.) are installed onto the runner's
       # filesystem, not this cached directory -- every job starts on a fresh
@@ -78,11 +98,11 @@ jobs:
       # `install-deps` (no `--with-deps` binary download) is the fast path.
       - name: Install Playwright browser (cache miss)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: deno run -A npm:playwright install --with-deps chromium
       - name: Install Playwright OS dependencies (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-      - run: npm run test:e2e
+        run: deno run -A npm:playwright install-deps chromium
+      - run: deno task test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -95,13 +115,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: denoland/setup-deno@v2
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run cf-typegen
-      - run: npm run build
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task cf-typegen
+      - run: deno task build
 
   gitleaks:
     name: gitleaks
