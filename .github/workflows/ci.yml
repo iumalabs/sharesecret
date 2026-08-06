@@ -10,7 +10,12 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A superseded PR run is safe to cancel outright -- nothing external
+  # depends on it. A superseded `main` run is not: the deploy job at the
+  # bottom of this file runs `wrangler deploy` against production, and
+  # cancelling mid-deploy there (rather than just queuing behind it) can
+  # leave a partial deployment. Only auto-cancel for non-main refs.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   lint:
@@ -142,3 +147,45 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Deploys `main` to production. Gated behind every other job passing, and
+  # behind being a push to `main` itself (not a PR -- PRs only ever run the
+  # checks above). This is the only path to production: there is no local/
+  # manual `deno task deploy` in the intended workflow, so merging to `main`
+  # is the actual "ship it" action once this job is green.
+  deploy:
+    name: deploy
+    needs: [lint, typecheck, test, e2e, build, gitleaks]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://sharesecret.maksimyugai.com
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task cf-typegen
+      # Applies any migrations added under migrations/ that the live D1
+      # database doesn't have yet. A no-op when there's nothing new -- safe
+      # to run on every deploy rather than only when a migration was added.
+      - name: Apply D1 migrations
+        run: deno task db:migrate:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Build and deploy
+        run: deno task deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

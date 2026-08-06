@@ -60,7 +60,7 @@ deno task dev
 | ----------------------------------- | ------------------------------------------------------------------------------- |
 | `deno task dev`                     | Vite dev server (Worker + React, hot reload)                                    |
 | `deno task build`                   | Production build (`dist/client` + Worker bundle)                                |
-| `deno task deploy`                  | Build and `wrangler deploy`                                                     |
+| `deno task deploy`                  | Build and `wrangler deploy` -- see Deployment below before running this         |
 | `deno task lint` / `lint:fix`       | `deno lint`                                                                     |
 | `deno task format` / `format:check` | `deno fmt`                                                                      |
 | `deno task typecheck`               | `deno check` for both the Worker and the React app (see Type checking above)    |
@@ -98,3 +98,17 @@ assertions once the underlying issue is fixed.
   `dist/` directory anywhere it could leak your local `.dev.vars`.
 - Security-relevant changes (crypto, PIN handling, storage, headers) should call out the reasoning in the PR
   description, not just the diff.
+
+## Deployment
+
+Production only ever deploys through the `deploy` job in `.github/workflows/ci.yml` -- it runs
+`deno task
+db:migrate:remote` then `deno task deploy` (build + `wrangler deploy`) against `sharesecret.maksimyugai.com`,
+gated behind every other CI job (lint, typecheck, test, e2e, build, gitleaks) passing, and only on a push to `main`.
+Merging a PR to `main` _is_ the deploy step; there's no separate manual trigger, and running `deno task deploy` from a
+local machine against production is not part of the intended workflow.
+
+The `deploy` job needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` configured as repository secrets (Settings →
+Secrets and variables → Actions) -- the token needs Workers Scripts:Edit, Workers Routes:Edit, and D1:Edit permissions,
+scoped to this project's Cloudflare account. Until those secrets exist, the `deploy` job fails after everything else has
+already passed; the checks it's gated behind still run and still matter, deploy just can't complete.
