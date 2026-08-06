@@ -63,4 +63,33 @@ test.describe("QR code on the sealed result screen", () => {
 
     expect(secondDecoded!.data).not.toBe(firstDecoded!.data);
   });
+
+  test("renders an empty placeholder instead of crashing if QR generation fails", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+
+    // The `qrcode` package's toDataURL() wraps canvas.toDataURL() in a
+    // Promise and turns a synchronous throw there into a rejection -- this
+    // is the only realistic way to make it fail without exceeding QR
+    // capacity, which the app's own fixed-shape sealed link never does.
+    await page.addInitScript(() => {
+      HTMLCanvasElement.prototype.toDataURL = new Proxy(HTMLCanvasElement.prototype.toDataURL, {
+        apply() {
+          throw new Error("forced toDataURL failure for coverage");
+        },
+      });
+    });
+
+    await page.goto("/");
+    await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill("qr failure probe");
+    await page.getByRole("button", { name: "Encrypt & get link" }).click();
+    await expect(page.getByText("Your secret is now a stranger to us.")).toBeVisible();
+
+    const placeholder = page.locator(".qr-frame");
+    await expect(placeholder).toBeVisible();
+    // The failure path renders a bare placeholder <div>, not the <img> the
+    // success path produces.
+    await expect(placeholder).toHaveJSProperty("tagName", "DIV");
+    expect(errors).toEqual([]);
+  });
 });

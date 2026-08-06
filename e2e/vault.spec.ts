@@ -98,6 +98,88 @@ test.describe("Vault: revoke", () => {
     await expect(row.getByText("Read", { exact: true })).toBeVisible({ timeout: STATUS_TIMEOUT });
     await expect(row.getByRole("button", { name: "Revoke" })).toHaveCount(0);
   });
+
+  test("revoking one entry leaves the other entries in the vault untouched", async ({ page, createSecret }) => {
+    const first = await createSecret("revoke-among-many probe 1");
+    const second = await createSecret("revoke-among-many probe 2");
+    await page.goto("/vault");
+
+    const firstRow = page.locator(".vault-item", { hasText: first.id });
+    const secondRow = page.locator(".vault-item", { hasText: second.id });
+    await expect(firstRow.getByText("Live", { exact: true })).toBeVisible({ timeout: STATUS_TIMEOUT });
+    await expect(secondRow.getByText("Live", { exact: true })).toBeVisible({ timeout: STATUS_TIMEOUT });
+
+    await firstRow.getByRole("button", { name: "Revoke" }).click();
+    await expect(firstRow.getByText("Revoked by you")).toBeVisible();
+
+    // The second entry's own record shouldn't have been rewritten by the
+    // first's revoke -- still Live, still revocable.
+    await expect(secondRow.getByText("Live", { exact: true })).toBeVisible();
+    await expect(secondRow.getByRole("button", { name: "Revoke" })).toBeVisible();
+  });
+});
+
+test.describe("Vault: storage edge cases", () => {
+  test("an entry with a past expiresAt shows as Expired without waiting on a network check", async ({ page }) => {
+    await page.goto("/"); // establish the origin before touching its localStorage
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "sharesecret:vault",
+        JSON.stringify([{
+          id: "expiredentry1",
+          createdAt: Date.now() - 3600_000,
+          expiresAt: Math.floor(Date.now() / 1000) - 60, // in the past
+          revoked: false,
+        }]),
+      );
+    });
+    await page.goto("/vault");
+
+    const row = page.locator(".vault-item", { hasText: "expiredentry1" });
+    // No STATUS_TIMEOUT wait needed -- expired is computed synchronously from
+    // the stored timestamp, unlike Live/Read which need a server round trip.
+    await expect(row.getByText("Expired", { exact: true })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Revoke" })).toHaveCount(0);
+  });
+
+  test("corrupted vault storage is treated as empty instead of crashing the page", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("sharesecret:vault", "{not valid json"));
+    await page.goto("/vault");
+
+    await expect(page.getByRole("heading", { name: "Vault" })).toBeVisible();
+    await expect(page.getByText("No secrets created in this browser yet.")).toBeVisible();
+  });
+
+  test("valid JSON that isn't an array is treated as empty instead of crashing the page", async ({ page }) => {
+    await page.goto("/");
+    // Well-formed JSON, but not the array shape vault.ts expects to store.
+    await page.evaluate(() => localStorage.setItem("sharesecret:vault", '{"not":"an array"}'));
+    await page.goto("/vault");
+
+    await expect(page.getByRole("heading", { name: "Vault" })).toBeVisible();
+    await expect(page.getByText("No secrets created in this browser yet.")).toBeVisible();
+  });
+
+  test("an entry already marked revoked at mount shows Revoked immediately, without a network check", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "sharesecret:vault",
+        JSON.stringify([{
+          id: "prerevokedentry1",
+          createdAt: Date.now() - 3600_000,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
+          revoked: true,
+        }]),
+      );
+    });
+    await page.goto("/vault");
+
+    const row = page.locator(".vault-item", { hasText: "prerevokedentry1" });
+    await expect(row.getByText("Revoked by you", { exact: true })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Revoke" })).toHaveCount(0);
+  });
 });
 
 test.describe("Vault: no 'Open' affordance (GH #42)", () => {
