@@ -82,6 +82,9 @@ test.describe("PIN entry", () => {
     await submit.click();
     await expect(page.getByRole("heading", { name: "Secret destroyed" })).toBeVisible();
     await expect(page.getByRole("alert")).toContainText(/destroyed/i);
+    // GH #48: dead ends offer a way to continue besides the top nav.
+    await expect(page.getByRole("link", { name: /Send a secret/ })).toHaveAttribute("href", "/");
+    await expect(page.getByRole("link", { name: "Open vault" })).toHaveAttribute("href", "/vault");
 
     // The row is gone server-side now, so re-opening the link in a fresh
     // navigation (a real recipient re-opening the link, not a same-document
@@ -147,6 +150,9 @@ test.describe("revealed-secret auto-clear", () => {
     await expect(page.getByRole("heading", { name: "Secret cleared" })).toBeVisible();
     await expect(page.locator("pre.secret-body")).toHaveCount(0);
     await expect(page.getByText(message)).toHaveCount(0);
+    // GH #48: dead ends offer a way to continue besides the top nav.
+    await expect(page.getByRole("link", { name: /Send a secret/ })).toHaveAttribute("href", "/");
+    await expect(page.getByRole("link", { name: "Open vault" })).toHaveAttribute("href", "/vault");
   });
 
   test("clears immediately when the tab becomes hidden, before the timeout", async ({ page, createSecret }) => {

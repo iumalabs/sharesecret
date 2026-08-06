@@ -3,13 +3,9 @@ import { PIN_ATTEMPTS } from "../src/shared/constants";
 
 // Both groups below started out as regression traps for real gaps between
 // the design mockup (docs/sharesecret-design.zip -- ShareSecret.dc.html) and
-// RevealPage.tsx, filed as #47 and #48. #47 landed (PR #50) while this file
-// was in progress, so that group is now a plain, currently-passing
-// assertion of the shipped UI. #48 is still open, so that group stays
-// wrapped in test.fail() as a regression trap: each assertion documents a
-// currently-missing element and will start failing "unexpectedly" (in a
-// good way) the moment that element ships too, which is the signal to drop
-// the test.fail() wrapper there as well.
+// RevealPage.tsx, filed as #47 and #48. Both landed (#47 via PR #50, #48 via
+// StatusPageActions in RevealPage.tsx) while this file was in progress, so
+// both groups are now plain, currently-passing assertions of the shipped UI.
 
 test.describe("Revealed-secret screen shows a destruct countdown and manual burn (GH #47)", () => {
   test("shows a live 'destruct in' countdown once revealed", async ({ page, createSecret }) => {
@@ -46,15 +42,12 @@ test.describe("Revealed-secret screen shows a destruct countdown and manual burn
   });
 });
 
-test.describe("Dead-end reveal screens offer no way back into the app (GH #48)", () => {
+test.describe("Dead-end reveal screens offer a way back into the app (GH #48)", () => {
   // Design's equivalent "gone" screen always pairs the dead-end message with
   // "SEND ONE BACK" / "OPEN VAULT" buttons. RevealPage.tsx's three terminal
-  // states below render only a status icon, heading, and paragraph -- no
-  // links anywhere except the persistent top nav.
+  // states now render the same pair via StatusPageActions.
 
   test("'Secret not found' offers a way to send a secret or open the vault", async ({ page }) => {
-    test.fail(true, "tracked by #48 -- not-found/destroyed/cleared have no forward-navigation links in the page body");
-
     // Same well-formed-but-unknown link used in link-errors.spec.ts.
     await page.goto("/s/doesnotexist12#AAAAAAAAAAAAAAAAAAAAAA");
     await expect(page.getByRole("heading", { name: "Secret not found" })).toBeVisible();
@@ -64,8 +57,6 @@ test.describe("Dead-end reveal screens offer no way back into the app (GH #48)",
   });
 
   test("'Secret destroyed' (after exhausting wrong PINs) offers a way to send a secret or open the vault", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #48");
-
     const { link } = await createSecret();
     await page.goto(link);
     const pinInput = page.getByLabel("PIN");
@@ -95,8 +86,6 @@ test.describe("Dead-end reveal screens offer no way back into the app (GH #48)",
   });
 
   test("'Secret cleared' (after auto-clear) offers a way to send a secret or open the vault", async ({ page, createSecret }) => {
-    test.fail(true, "tracked by #48");
-
     const { link, pin } = await createSecret();
     await page.goto(link);
     await page.getByLabel("PIN").fill(pin);

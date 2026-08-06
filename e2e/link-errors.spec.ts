@@ -21,6 +21,19 @@ test.describe("broken / incomplete links", () => {
     await expect(page.getByText("This secret has already been viewed, has expired, or never existed.")).toBeVisible();
   });
 
+  // GH #48: dead-end screens (not-found here, destroyed/cleared covered in
+  // reveal.spec.ts) previously offered no way to continue besides the top
+  // nav -- a visitor who followed a stale link may not be the one who
+  // created it, and might not know this site is also where they'd go to
+  // send a fresh one.
+  test("'secret not found' offers a way to send a secret or check the vault", async ({ page }) => {
+    await page.goto("/s/doesnotexist12#AAAAAAAAAAAAAAAAAAAAAA");
+    await expect(page.getByRole("heading", { name: "Secret not found" })).toBeVisible();
+
+    await expect(page.getByRole("link", { name: /Send a secret/ })).toHaveAttribute("href", "/");
+    await expect(page.getByRole("link", { name: "Open vault" })).toHaveAttribute("href", "/vault");
+  });
+
   test(
     "a syntactically invalid key (wrong length/charset) stays on 'incomplete link' " +
       "instead of racing into a dead-end PIN screen",
