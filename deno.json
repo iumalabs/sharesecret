@@ -16,8 +16,10 @@
     "@types/react-dom": "npm:@types/react-dom@^19.2.4",
     "@vitejs/plugin-react": "npm:@vitejs/plugin-react@^5.0.4",
     "jsqr": "npm:jsqr@^1.4.0",
+    "nyc": "npm:nyc@^17.1.0",
     "typescript": "npm:typescript@5.9.3",
     "vite": "npm:vite@^7.1.12",
+    "vite-plugin-istanbul": "npm:vite-plugin-istanbul@^7.1.0",
     "vitest": "npm:vitest@^4.1.10",
     "wrangler": "npm:wrangler@^4.118.0"
   },
@@ -36,6 +38,8 @@
     "test:watch": "deno run -A npm:vitest",
     "test:e2e": "deno run -A npm:playwright test --config e2e/playwright.config.ts",
     "test:e2e:ui": "deno run -A npm:playwright test --config e2e/playwright.config.ts --ui",
+    "test:e2e:coverage": "rm -rf .nyc_output coverage && COVERAGE=true deno run -A npm:playwright test --config e2e/playwright.config.ts --project=chromium && deno run -A npm:nyc report --reporter=html --reporter=text-summary --report-dir=coverage --temp-dir=.nyc_output",
+    "test:e2e:coverage:check": "deno task test:e2e:coverage && deno run -A npm:nyc check-coverage",
     "db:migrate:local": "deno run -A npm:wrangler d1 migrations apply sharesecret-db --local",
     "db:migrate:remote": "deno run -A npm:wrangler d1 migrations apply sharesecret-db --remote",
     "gen-dev-vars": "deno run --allow-read --allow-write scripts/gen-dev-vars.ts"

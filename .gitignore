@@ -10,6 +10,7 @@ worker-configuration.d.ts
 .env.*
 !.env.example
 coverage/
+.nyc_output/
 test-results/
 playwright-report/
 blob-report/
