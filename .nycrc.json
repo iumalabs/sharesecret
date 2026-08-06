@@ -1,0 +1,19 @@
+{
+  "all": true,
+  "cwd": ".",
+  "include": ["src/react-app/**/*.{ts,tsx}"],
+  "exclude": [
+    "src/react-app/vite.config.ts",
+    "**/*.d.ts",
+    "src/react-app/main.tsx"
+  ],
+  "extension": [".ts", ".tsx"],
+  "reporter": ["html", "text-summary"],
+  "report-dir": "coverage",
+  "temp-dir": ".nyc_output",
+  "check-coverage": true,
+  "statements": 99,
+  "branches": 97,
+  "functions": 100,
+  "lines": 100
+}
