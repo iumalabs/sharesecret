@@ -655,6 +655,14 @@ button {
   justify-content: center;
 }
 
+/* .btn-primary's own margin-top (spacing when it's used standalone, e.g. the
+   Vault empty state) only pushed *this* button down relative to its flex
+   sibling here, since .btn-secondary has no matching margin-top -- same fix
+   .result-row already applies to the same pairing. */
+.status-page-actions .btn-primary {
+  margin-top: 0;
+}
+
 .status-page .note {
   margin-top: 20px;
   padding: 14px;
