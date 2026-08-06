@@ -119,6 +119,49 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            node_modules
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - run: deno install
+      - run: deno task cf-typegen
+      - run: cp .env.example .dev.vars && sed -i "s/^PIN_HASH_PEPPER=$/PIN_HASH_PEPPER=ci-only-pepper-$(openssl rand -hex 16)/" .dev.vars
+      - run: deno task db:migrate:local
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('deno.lock') }}
+      - name: Install Playwright browser (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: deno run -A npm:playwright install --with-deps chromium
+      - name: Install Playwright OS dependencies (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: deno run -A npm:playwright install-deps chromium
+      # Instrumented, single-worker, chromium-only: coverage runs are already
+      # a second full pass of the suite on top of the `e2e` job above, and
+      # parallel workers were observed to reintroduce the environment
+      # contention (shared createSecret-fixture timeouts) that --workers=1
+      # avoids -- correctness of the number matters more here than speed.
+      - run: deno task test:e2e:coverage:check
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
   build:
     name: build
     runs-on: ubuntu-latest
@@ -155,7 +198,7 @@ jobs:
   # is the actual "ship it" action once this job is green.
   deploy:
     name: deploy
-    needs: [lint, typecheck, test, e2e, build, gitleaks]
+    needs: [lint, typecheck, test, e2e, coverage, build, gitleaks]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
