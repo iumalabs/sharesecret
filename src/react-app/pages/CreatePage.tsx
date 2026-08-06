@@ -170,8 +170,8 @@ function CreatedResult({ result, onReset }: { result: CreatedSecret; onReset: ()
         <div className="card-label">
           <span>PIN</span>
         </div>
-        <div className="result-value pin-value">{result.pin}</div>
-        <div className="result-row">
+        <div className="pin-row">
+          <div className="result-value pin-value">{result.pin}</div>
           <CopyButton value={result.pin} label="Copy PIN" className="btn-secondary" />
         </div>
       </div>
