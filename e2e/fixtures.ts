@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { expect, type Page, test as base } from "@playwright/test";
 import { PIN_SIZE } from "../src/shared/constants";
 
@@ -74,11 +76,33 @@ type Fixtures = {
   createSecret: (message?: string) => Promise<CreatedSecret>;
 };
 
+// Populated by vite-plugin-istanbul (see src/react-app/vite.config.ts) only
+// when COVERAGE=true; `window.__coverage__` doesn't exist otherwise, so this
+// stays a no-op for every normal test:e2e run. Resolved against process.cwd()
+// rather than this file's own location (e.g. via import.meta) -- Playwright
+// compiles spec/fixture files to CJS here, where `import.meta` isn't valid
+// syntax; `deno task test:e2e:coverage` always invokes from the repo root,
+// same as nyc's own --temp-dir=.nyc_output in that task, so the two agree.
+const NYC_OUTPUT_DIR = path.resolve(process.cwd(), ".nyc_output");
+
+async function saveCoverage(page: Page, testId: string): Promise<void> {
+  const coverage = await page.evaluate(() => (globalThis as { __coverage__?: unknown }).__coverage__).catch(() =>
+    undefined
+  );
+  if (!coverage) return;
+  await mkdir(NYC_OUTPUT_DIR, { recursive: true });
+  await writeFile(path.join(NYC_OUTPUT_DIR, `${testId}.json`), JSON.stringify(coverage));
+}
+
 export const test = base.extend<Fixtures>({
   page: async ({ page }, use, testInfo) => {
     await page.context().setExtraHTTPHeaders({ "CF-Connecting-IP": syntheticIp(testInfo.testId) });
     // deno-lint-ignore react-rules-of-hooks -- Playwright's fixture `use`, not React's
     await use(page);
+    // Grab whatever coverage this test's page(s) accumulated before the
+    // fixture tears the page down -- covers page.goto() navigations within
+    // the test, but not a page closed early by the test itself.
+    if (!page.isClosed()) await saveCoverage(page, testInfo.testId);
   },
 
   createSecret: async ({ page }, use) => {

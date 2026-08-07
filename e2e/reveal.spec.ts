@@ -1,4 +1,4 @@
-import { expect, gotoFresh, test } from "./fixtures";
+import { expect, gotoFresh, parseLink, test } from "./fixtures";
 import { PIN_ATTEMPTS } from "../src/shared/constants";
 
 test.describe("PIN entry", () => {
@@ -207,6 +207,84 @@ test.describe("revealed-secret countdown & manual burn", () => {
 
     await expect(page.getByRole("heading", { name: "Secret cleared" })).toBeVisible();
     await expect(page.getByText(message)).toHaveCount(0);
+  });
+});
+
+test.describe("decrypt/reveal edge cases", () => {
+  test("shows a decrypt error if the key fragment doesn't match what encrypted the secret", async ({ page, createSecret }) => {
+    const { link, pin } = await createSecret();
+    const { id, key } = parseLink(link);
+    // Same length/charset as a real key (so importKey() still succeeds and
+    // the PIN screen renders normally) but decodes to different key bytes --
+    // the PIN alone doesn't gate the server, so reveal succeeds and only the
+    // client-side AES-GCM auth-tag check catches the mismatch.
+    const tamperedKey = (key[0] === "A" ? "B" : "A") + key.slice(1);
+    await page.goto(`/s/${id}#${tamperedKey}`);
+
+    await expect(page.getByRole("heading", { name: "Someone left you a sealed note" })).toBeVisible();
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText("Failed to decrypt. The link may be corrupted.");
+  });
+
+  test("shows 'not found' if the secret is destroyed between loading the PIN screen and submitting it", async ({ page, createSecret }) => {
+    const { link, pin } = await createSecret();
+    await page.goto(link);
+    await expect(page.getByRole("heading", { name: "Someone left you a sealed note" })).toBeVisible();
+
+    await page.route(
+      "**/api/v1/message/*/reveal",
+      (route) => route.fulfill({ status: 404, contentType: "application/json", body: '{"error":"Secret not found"}' }),
+    );
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+
+    await expect(page.getByRole("heading", { name: "Secret not found" })).toBeVisible();
+  });
+
+  test("shows a decrypt error if the server's ciphertext blob is too short to be valid", async ({ page, createSecret }) => {
+    const { link, pin } = await createSecret();
+    await page.goto(link);
+
+    // Real blobs are at least a 12-byte IV plus an auth tag; this is neither.
+    await page.route(
+      "**/api/v1/message/*/reveal",
+      (route) => route.fulfill({ status: 200, contentType: "application/json", body: '{"data":"AAAA"}' }),
+    );
+    await page.getByLabel("PIN").fill(pin);
+    await page.getByRole("button", { name: "Reveal secret" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText("Failed to decrypt. The link may be corrupted.");
+  });
+
+  test("submitting before the key has finished importing is a no-op instead of decrypting with nothing", async ({ page, createSecret }) => {
+    const { link, pin } = await createSecret();
+
+    // The submit button stays disabled while the key import is in flight, so
+    // reach handleSubmit directly the way a stray Enter-key race could --
+    // it should bail out cleanly rather than call decryptText(null, ...).
+    // Delay generously (page.fill() alone can eat a plain 300ms under load
+    // in this environment) so the disabled-button check below is a genuine
+    // confirmation of the race window, not a guess.
+    await page.addInitScript(() => {
+      const orig = crypto.subtle.importKey.bind(crypto.subtle);
+      crypto.subtle.importKey = ((...args: Parameters<typeof orig>) =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(orig(...args)), 5_000)
+        )) as typeof orig;
+    });
+
+    await page.goto(link);
+    await page.getByLabel("PIN").fill(pin);
+    const submit = page.getByRole("button", { name: "Reveal secret" });
+    await expect(submit).toBeDisabled(); // confirms the import genuinely hasn't resolved yet
+
+    await page.locator("form.card").evaluate((form: HTMLFormElement) => form.requestSubmit());
+    await page.waitForTimeout(200);
+
+    await expect(page.getByRole("heading", { name: "Someone left you a sealed note" })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
   });
 });
 

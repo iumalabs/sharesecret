@@ -90,6 +90,98 @@ test.describe("compose / create secret", () => {
     // the textarea's maxlength is a separate, more conservative client-side guard.
     expect(MAX_MESSAGE_BYTES).toBeGreaterThan(0);
   });
+
+  test("'Copy link' flips to the default '✓ Copied' label, then reverts after its timeout", async ({ page, createSecret }) => {
+    await page.clock.install();
+    await createSecret();
+
+    const copyLink = page.getByRole("button", { name: "Copy link" });
+    await copyLink.click();
+    await expect(page.getByRole("button", { name: "✓ Copied" })).toBeVisible();
+
+    await page.clock.fastForward(1_601);
+    await expect(page.getByRole("button", { name: "Copy link" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "✓ Copied" })).toHaveCount(0);
+  });
+});
+
+test.describe("compose errors", () => {
+  test("shows an error if the initial config load fails", async ({ page }) => {
+    await page.route("**/api/v1/params", (route) => route.fulfill({ status: 500, body: "" }));
+    await page.goto("/");
+
+    await expect(page.getByRole("alert")).toHaveText("Couldn't reach the server. Please reload the page.");
+    // The form itself never becomes usable without params (PIN size, expiry
+    // bounds, etc. all come from there).
+    await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill("a secret");
+    await expect(page.getByRole("button", { name: "Encrypt & get link" })).toBeDisabled();
+  });
+
+  test("shows the server's error message when creating a secret fails", async ({ page }) => {
+    await page.route("**/api/v1/message", (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      // No "error" field -- exercises the response-parsing fallback message,
+      // not just the happy-path "the server told us why" case.
+      return route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+    });
+    await page.goto("/");
+    await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill("a secret");
+    await page.getByRole("button", { name: "Encrypt & get link" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText("Request failed (500)");
+  });
+
+  test("shows a generic error if the create request never reaches the server", async ({ page }) => {
+    await page.route("**/api/v1/message", (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      return route.abort("failed");
+    });
+    await page.goto("/");
+    await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill("a secret");
+    await page.getByRole("button", { name: "Encrypt & get link" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText(
+      "Something went wrong while encrypting or sending your secret. Please try again.",
+    );
+  });
+
+  test("shows the generic fallback message when an error response's body isn't valid JSON at all", async ({ page }) => {
+    await page.route("**/api/v1/message", (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      // Not just missing an "error" key -- genuinely unparseable, so
+      // res.json() itself throws and the response-parsing fallback has to
+      // cope with no body at all, not just an empty one.
+      return route.fulfill({ status: 500, contentType: "application/json", body: "not json{" });
+    });
+    await page.goto("/");
+    await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill("a secret");
+    await page.getByRole("button", { name: "Encrypt & get link" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText("Request failed (500)");
+  });
+
+  test("submitting before the config has loaded is a no-op instead of sending a broken request", async ({ page }) => {
+    let resolveParams: (() => void) | undefined;
+    await page.route("**/api/v1/params", async (route) => {
+      await new Promise<void>((resolve) => {
+        resolveParams = resolve;
+      });
+      await route.continue();
+    });
+
+    await page.goto("/");
+    await page.getByPlaceholder("Type the thing you shouldn't send over chat…").fill("racing the config load");
+    // The submit button stays disabled while params are still loading, so
+    // reach handleSubmit directly the way a stray Enter-key race could --
+    // it should bail out cleanly rather than dereference the missing config.
+    await page.locator("form.card").evaluate((form: HTMLFormElement) => form.requestSubmit());
+    await page.waitForTimeout(200);
+
+    await expect(page.getByRole("heading", { name: /Say it once\./ })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    resolveParams?.();
+  });
 });
 
 test.describe("compose form persists across the flow", () => {
