@@ -68,7 +68,7 @@ test.describe("footer", () => {
     await expect(footer).toBeVisible();
     await expect(footer.getByRole("link", { name: "Source" })).toHaveAttribute(
       "href",
-      "https://github.com/maksimyugai/sharesecret",
+      "https://github.com/iumalabs/sharesecret",
     );
     await expect(footer.getByRole("link", { name: "Protocol" })).toHaveAttribute("href", "/how");
   });

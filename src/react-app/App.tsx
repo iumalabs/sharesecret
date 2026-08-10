@@ -58,7 +58,7 @@ function App() {
           <span>SHARESECRET</span>
           <span className="site-footer-links">
             <a href="/how">Protocol</a>
-            <a href="https://github.com/maksimyugai/sharesecret" target="_blank" rel="noreferrer">
+            <a href="https://github.com/iumalabs/sharesecret" target="_blank" rel="noreferrer">
               Source
             </a>
           </span>

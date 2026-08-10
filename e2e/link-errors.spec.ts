@@ -38,7 +38,7 @@ test.describe("broken / incomplete links", () => {
     "a syntactically invalid key (wrong length/charset) stays on 'incomplete link' " +
       "instead of racing into a dead-end PIN screen",
     async ({ page, createSecret }) => {
-      // Regression test for https://github.com/maksimyugai/sharesecret/issues/17
+      // Regression test for https://github.com/iumalabs/sharesecret/issues/17
       // (fixed by #19): `importKey()` used to reject fast and set
       // "missing-key", while the sibling `checkMessage(id)` network call
       // resolved slightly later and unconditionally overwrote status to
