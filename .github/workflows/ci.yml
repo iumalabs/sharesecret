@@ -18,6 +18,40 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Decides whether the e2e/coverage jobs below are worth running. Playwright
+  # (browser install + a full app boot + DB migrations) is the slowest and
+  # most contention-prone part of this pipeline -- a docs-only or
+  # workflow-unrelated-file PR gets no value from re-running it. Everything
+  # that can change runtime behavior stays in scope: app code, the e2e specs
+  # themselves, migrations, static assets served to the browser, dependency
+  # locks, and this workflow file (so an edit to the e2e/coverage jobs still
+  # validates itself instead of skipping past its own change).
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            e2e:
+              - 'src/**'
+              - 'e2e/**'
+              - 'migrations/**'
+              - 'public/**'
+              - 'scripts/**'
+              - 'index.html'
+              - 'wrangler.jsonc'
+              - 'deno.json'
+              - 'deno.lock'
+              - '.nycrc.json'
+              - '.github/workflows/ci.yml'
+
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -78,6 +112,8 @@ jobs:
 
   e2e:
     name: e2e
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,6 +157,8 @@ jobs:
 
   coverage:
     name: coverage
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -212,7 +250,22 @@ jobs:
   deploy:
     name: deploy
     needs: [lint, typecheck, test, e2e, coverage, build, gitleaks]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # e2e/coverage are conditional on the `changes` filter above and report
+    # `skipped` (not `success`) when there's nothing for them to check --
+    # the default `needs`-implied success() check would treat that skip as a
+    # failure and block deploy on e.g. a docs-only change. Explicitly accept
+    # skipped for those two; every other job is unconditional and still must
+    # have actually succeeded.
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push' &&
+      needs.lint.result == 'success' &&
+      needs.typecheck.result == 'success' &&
+      needs.test.result == 'success' &&
+      needs.build.result == 'success' &&
+      needs.gitleaks.result == 'success' &&
+      (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') &&
+      (needs.coverage.result == 'success' || needs.coverage.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: production
