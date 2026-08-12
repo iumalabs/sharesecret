@@ -15,7 +15,7 @@
   "triggers": {
     "crons": ["*/5 * * * *"]
   },
-  "routes": [{ "pattern": "sharesecret.maksimyugai.com", "custom_domain": true }],
+  "routes": [{ "pattern": "sharesecret.iuma.dev", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "DB",

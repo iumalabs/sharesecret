@@ -203,7 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://sharesecret.maksimyugai.com
+      url: https://sharesecret.iuma.dev
     permissions:
       contents: read
     steps:

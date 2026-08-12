@@ -103,10 +103,10 @@ assertions once the underlying issue is fixed.
 
 Production only ever deploys through the `deploy` job in `.github/workflows/ci.yml` -- it runs
 `deno task
-db:migrate:remote` then `deno task deploy` (build + `wrangler deploy`) against `sharesecret.maksimyugai.com`,
-gated behind every other CI job (lint, typecheck, test, e2e, build, gitleaks) passing, and only on a push to `main`.
-Merging a PR to `main` _is_ the deploy step; there's no separate manual trigger, and running `deno task deploy` from a
-local machine against production is not part of the intended workflow.
+db:migrate:remote` then `deno task deploy` (build + `wrangler deploy`) against `sharesecret.iuma.dev`, gated
+behind every other CI job (lint, typecheck, test, e2e, build, gitleaks) passing, and only on a push to `main`. Merging a
+PR to `main` _is_ the deploy step; there's no separate manual trigger, and running `deno task deploy` from a local
+machine against production is not part of the intended workflow.
 
 The `deploy` job needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` configured as repository secrets (Settings →
 Secrets and variables → Actions) -- the token needs Workers Scripts:Edit, Workers Routes:Edit, and D1:Edit permissions,
