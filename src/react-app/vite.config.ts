@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type PluginOption } from "vite";
@@ -25,8 +26,17 @@ const repoRoot = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../
 // timing-sensitive assertions.
 const coverage = process.env.COVERAGE === "true";
 
+// Single source of truth for the app version is version.txt at the repo
+// root -- release-please (release-type: simple) bumps that file on every
+// release PR. Read it at build time rather than importing deno.json, which
+// contains "//" comments and isn't strict JSON.
+const appVersion = readFileSync(path.resolve(repoRoot, "version.txt"), "utf-8").trim();
+
 export default defineConfig({
   root: repoRoot,
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   // Vite normally infers this as <nearest package.json>/node_modules/.vite,
   // which @vitejs/plugin-react's default exclude (/node_modules/) skips for
   // Babel/Fast Refresh transforms. This repo has no package.json, so Vite

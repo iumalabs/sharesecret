@@ -827,6 +827,10 @@ main {
   flex-wrap: wrap;
 }
 
+.site-footer-version {
+  opacity: 0.6;
+}
+
 .site-footer a {
   color: var(--dim);
 }
