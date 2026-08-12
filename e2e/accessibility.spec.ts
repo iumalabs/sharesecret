@@ -50,7 +50,7 @@ test.describe("automated a11y scan (axe-core)", () => {
   // first waits for the expected heading -- scanning too early caught axe
   // mid-loading-flash (no heading at all yet) and produced a misleading
   // page-has-heading-one violation unrelated to the real, now-fixed bug
-  // (https://github.com/maksimyugai/sharesecret/issues/18, fixed by #20).
+  // (https://github.com/iumalabs/sharesecret/issues/18, fixed by #20).
   test("PIN entry screen has no detectable a11y violations", async ({ page, createSecret }) => {
     const { link } = await createSecret();
     await page.goto(link);

@@ -180,6 +180,12 @@ jobs:
       - run: deno task cf-typegen
       - run: deno task build
 
+  # Runs the gitleaks CLI directly instead of gitleaks/gitleaks-action: that
+  # action now gates on account type ("[iumalabs] is an organization. License
+  # key is required.") and refuses to run on an org-owned repo without a paid
+  # GITLEAKS_LICENSE secret. The underlying gitleaks binary is MIT-licensed
+  # and unaffected -- only the Action wrapper added the org paywall -- so we
+  # fetch the latest release and invoke `gitleaks detect` ourselves.
   gitleaks:
     name: gitleaks
     runs-on: ubuntu-latest
@@ -187,9 +193,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - name: Install gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(gh api repos/gitleaks/gitleaks/releases/latest --jq .tag_name | sed 's/^v//')
+          curl -fsSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+      - run: gitleaks detect --source . --redact --exit-code 1 -v
 
   # Deploys `main` to production. Gated behind every other job passing, and
   # behind being a push to `main` itself (not a PR -- PRs only ever run the
