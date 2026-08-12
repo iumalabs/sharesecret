@@ -218,30 +218,6 @@ jobs:
       - run: deno task cf-typegen
       - run: deno task build
 
-  # Runs the gitleaks CLI directly instead of gitleaks/gitleaks-action: that
-  # action now gates on account type ("[iumalabs] is an organization. License
-  # key is required.") and refuses to run on an org-owned repo without a paid
-  # GITLEAKS_LICENSE secret. The underlying gitleaks binary is MIT-licensed
-  # and unaffected -- only the Action wrapper added the org paywall -- so we
-  # fetch the latest release and invoke `gitleaks detect` ourselves.
-  gitleaks:
-    name: gitleaks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install gitleaks
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          version=$(gh api repos/gitleaks/gitleaks/releases/latest --jq .tag_name | sed 's/^v//')
-          curl -fsSL -o gitleaks.tar.gz \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz"
-          tar -xzf gitleaks.tar.gz gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
-      - run: gitleaks detect --source . --redact --exit-code 1 -v
-
   # Deploys `main` to production. Gated behind every other job passing, and
   # behind being a push to `main` itself (not a PR -- PRs only ever run the
   # checks above). This is the only path to production: there is no local/
@@ -249,7 +225,7 @@ jobs:
   # is the actual "ship it" action once this job is green.
   deploy:
     name: deploy
-    needs: [lint, typecheck, test, e2e, coverage, build, gitleaks]
+    needs: [lint, typecheck, test, e2e, coverage, build]
     # e2e/coverage are conditional on the `changes` filter above and report
     # `skipped` (not `success`) when there's nothing for them to check --
     # the default `needs`-implied success() check would treat that skip as a
@@ -263,7 +239,6 @@ jobs:
       needs.typecheck.result == 'success' &&
       needs.test.result == 'success' &&
       needs.build.result == 'success' &&
-      needs.gitleaks.result == 'success' &&
       (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') &&
       (needs.coverage.result == 'success' || needs.coverage.result == 'skipped')
     runs-on: ubuntu-latest

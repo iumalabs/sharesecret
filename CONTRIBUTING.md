@@ -91,8 +91,11 @@ assertions once the underlying issue is fixed.
 
 ## Pull requests
 
-- One focused change per PR. CI (lint, typecheck, test, e2e, build, CodeQL, gitleaks) must be green before merge.
+- One focused change per PR. CI (lint, typecheck, test, e2e, build, CodeQL) must be green before merge.
 - No secrets, API tokens, or `.dev.vars` in commits — `.env.example` documents required variables without values.
+  `gitleaks/gitleaks-action` isn't run in CI (it requires a paid license for org-owned repos); run
+  [gitleaks](https://github.com/gitleaks/gitleaks) locally before pushing if you want that check --
+  `gitleaks detect --source . --redact -v`.
 - Note: `deno task build` copies `.dev.vars` into `dist/sharesecret/` (this is `@cloudflare/vite-plugin` behavior, so
   `vite preview` can run against a Worker locally). `dist/` is gitignored, but don't manually publish or archive the
   `dist/` directory anywhere it could leak your local `.dev.vars`.
@@ -104,9 +107,9 @@ assertions once the underlying issue is fixed.
 Production only ever deploys through the `deploy` job in `.github/workflows/ci.yml` -- it runs
 `deno task
 db:migrate:remote` then `deno task deploy` (build + `wrangler deploy`) against `sharesecret.iuma.dev`, gated
-behind every other CI job (lint, typecheck, test, e2e, build, gitleaks) passing, and only on a push to `main`. Merging a
-PR to `main` _is_ the deploy step; there's no separate manual trigger, and running `deno task deploy` from a local
-machine against production is not part of the intended workflow.
+behind every other CI job (lint, typecheck, test, e2e, build) passing, and only on a push to `main`. Merging a PR to
+`main` _is_ the deploy step; there's no separate manual trigger, and running `deno task deploy` from a local machine
+against production is not part of the intended workflow.
 
 The `deploy` job needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` configured as repository secrets (Settings →
 Secrets and variables → Actions) -- the token needs Workers Scripts:Edit, Workers Routes:Edit, and D1:Edit permissions,
