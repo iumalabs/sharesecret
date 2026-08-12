@@ -54,7 +54,8 @@
       "worker-configuration.d.ts",
       "deno.lock",
       "e2e/test-results",
-      "e2e/playwright-report"
+      "e2e/playwright-report",
+      "CHANGELOG.md"
     ]
   },
   "lint": {
