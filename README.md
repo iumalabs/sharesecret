@@ -1,5 +1,12 @@
 # ShareSecret
 
+[![CI](https://github.com/iumalabs/sharesecret/actions/workflows/ci.yml/badge.svg)](https://github.com/iumalabs/sharesecret/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/iumalabs/sharesecret/actions/workflows/codeql.yml/badge.svg)](https://github.com/iumalabs/sharesecret/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/iumalabs/sharesecret)](https://github.com/iumalabs/sharesecret/releases)
+[![License: MIT](https://img.shields.io/github/license/iumalabs/sharesecret)](LICENSE)
+[![Open issues](https://img.shields.io/github/issues/iumalabs/sharesecret)](https://github.com/iumalabs/sharesecret/issues)
+[![Last commit](https://img.shields.io/github/last-commit/iumalabs/sharesecret)](https://github.com/iumalabs/sharesecret/commits/main)
+
 Zero-knowledge, one-time secret sharing on Cloudflare Workers.
 
 Inspired by [safesecret.info](https://safesecret.info) — encrypt a message in your browser, share a link and a PIN over
