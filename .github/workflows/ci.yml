@@ -60,7 +60,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/deno
@@ -84,7 +84,7 @@ jobs:
       # DIFFERENT effective compilerOptions -- a false-positive risk that's
       # exactly wrong for a security-relevant CI gate. node_modules alone
       # (deterministic from deno.lock) is safe to cache for speed.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: node_modules
           key: node_modules-${{ runner.os }}-${{ hashFiles('deno.lock') }}
@@ -100,7 +100,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/deno
@@ -120,7 +120,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/deno
@@ -132,7 +132,7 @@ jobs:
       - run: deno task db:migrate:local
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-browsers-${{ runner.os }}-${{ hashFiles('deno.lock') }}
@@ -165,7 +165,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/deno
@@ -177,7 +177,7 @@ jobs:
       - run: deno task db:migrate:local
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-browsers-${{ runner.os }}-${{ hashFiles('deno.lock') }}
@@ -208,7 +208,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/deno
@@ -252,7 +252,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/deno
